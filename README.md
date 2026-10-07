@@ -13,6 +13,8 @@ Dashboard peta 3D bergaya kartun yang menampilkan lokasi bandara Indonesia (kode
 - Gunung (24 puncak utama, puncak tinggi bersalju, gunung api aktif berasap), sungai besar (Kapuas, Mahakam, Barito, Musi, Bengawan Solo, Mamberamo, Digul, dll.), dan hutan di pulau-pulau besar. Arahkan kursor ke gunung atau sungai untuk melihat namanya.
 - 65 bandara dengan label **IATA/ICAO** (mis. `CGK/WIII`) dan jam lokal yang berjalan langsung; label diatur otomatis agar tidak bertumpuk.
 - Klik bandara (di peta atau di daftar) untuk terbang ke lokasinya dan melihat jam detik, tanggal, bagian hari, dan selisih dengan jam perangkat Anda.
+- **Matahari terbit & terbenam** untuk setiap bandara (dihitung dengan rumus astronomi NOAA/SunCalc): tampil di daftar, kartu detail (beserta hitung mundur), dan di label peta lewat tombol **Label sunset**.
+- **Bayangan siang/malam**: sisi Indonesia yang sedang malam diberi bayangan gelap, dengan garis kuning sebagai batas siang/malam (terminator) yang bergerak sesuai posisi matahari sebenarnya. Bisa dimatikan dengan tombol **Siang/malam**.
 - Jam besar per zona di bagian atas; klik untuk memfilter dan memusatkan peta ke zona tersebut.
 - Pencarian berdasarkan kode IATA, ICAO, nama bandara, kota, atau provinsi.
 - Kontrol peta: seret untuk geser, klik kanan / dua jari untuk memutar, scroll / cubit untuk zoom, tombol **Putar** untuk rotasi otomatis.

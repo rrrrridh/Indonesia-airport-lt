@@ -194,6 +194,8 @@ body {
 .legend h3 { margin: 0 0 2px; font-family: var(--font-display); font-weight: 600; font-size: 13px; color: var(--muted); }
 .legend-row { display: flex; align-items: center; gap: 7px; }
 .legend-cols { display: grid; grid-template-columns: auto auto; gap: 3px 14px; }
+.sw.night { background: #3a4378; }
+.sw.line { height: 5px; border-radius: 3px; border-width: 1.5px; background: #ffc233; }
 .sw { width: 14px; height: 14px; border-radius: 4px; border: 2px solid var(--ink); flex: none; }
 .sw.wib { background: var(--wib); } .sw.wita { background: var(--wita); } .sw.wit { background: var(--wit); }
 .legend svg { flex: none; }
@@ -226,6 +228,12 @@ body {
 .card-sub { color: var(--muted); font-size: 12px; font-weight: 700; }
 .card-time { font-family: var(--font-display); font-weight: 700; font-size: 38px; line-height: 1.05; font-variant-numeric: tabular-nums; margin-top: 6px; }
 .card-date { font-size: 12px; font-weight: 800; color: var(--muted); }
+.card-sun { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 8px; }
+.sun-tile { border: 2.5px solid var(--ink); border-radius: 12px; padding: 4px 8px 5px; background: var(--surface-2); display: grid; gap: 0; }
+.sun-tile.set { background: color-mix(in srgb, #ff8a4c 22%, var(--surface)); }
+.sun-tile span { font-size: 11px; font-weight: 900; color: var(--muted); display: flex; align-items: center; gap: 4px; }
+.sun-tile b { font-family: var(--font-display); font-weight: 700; font-size: 20px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.sun-note { grid-column: 1 / -1; font-size: 12px; font-weight: 800; color: var(--muted); }
 .card-diff { margin-top: 6px; font-size: 12px; font-weight: 700; background: var(--surface-2); border-radius: 10px; padding: 6px 8px; }
 .pill {
   display: inline-block; font-family: var(--font-display); font-weight: 700; font-size: 12px;
@@ -270,7 +278,11 @@ body {
 .row-city { font-size: 12px; font-weight: 700; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .row-time { text-align: right; }
 .row-time time { display: block; font-family: var(--font-display); font-weight: 700; font-size: 17px; font-variant-numeric: tabular-nums; }
-.row-time small { font-size: 11px; font-weight: 800; color: var(--muted); }
+.row-time small { display: block; font-size: 11px; font-weight: 800; color: var(--muted); }
+.row-time .row-sun { display: inline-flex; align-items: center; gap: 3px; color: #d9622b; }
+.ico-sunset { flex: none; vertical-align: -2px; }
+.tag .ico-sunset { display: none; }
+.sunset-mode .tag .ico-sunset { display: inline-block; }
 .empty { padding: 24px 12px; color: var(--muted); text-align: center; font-weight: 700; }
 .nogl { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center; color: #fff; font-weight: 800; }
 
@@ -354,6 +366,8 @@ body {
 
       <div class="hud-top">
         <button type="button" class="btn" id="btn-labels" aria-pressed="true">Label jam</button>
+        <button type="button" class="btn" id="btn-sunset" aria-pressed="false">Label sunset</button>
+        <button type="button" class="btn" id="btn-night" aria-pressed="true">Siang/malam</button>
         <button type="button" class="btn" id="btn-spin" aria-pressed="false">Putar</button>
         <button type="button" class="btn" id="btn-reset">Seluruh Indonesia</button>
       </div>
@@ -368,6 +382,11 @@ body {
           <div class="card-sub" id="c-sub"></div>
           <div class="card-time" id="c-time">--:--:--</div>
           <div class="card-date" id="c-date"></div>
+          <div class="card-sun">
+            <div class="sun-tile"><span>Terbit</span><b id="c-rise">--:--</b></div>
+            <div class="sun-tile set"><span><svg class="ico-sunset" width="14" height="12" viewBox="0 0 14 12" aria-hidden="true"><path d="M2.5 8.5a4.5 4.5 0 0 1 9 0" fill="#ff9a3c" stroke="#23305a" stroke-width="1.4"/><path d="M1 10.5h12M7 1v2.5M5.5 2.5 7 4l1.5-1.5" fill="none" stroke="#23305a" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Terbenam</span><b id="c-set">--:--</b></div>
+            <div class="sun-note" id="c-sunnote"></div>
+          </div>
           <div class="card-diff"><span class="pill" id="c-zone"></span> <span id="c-zname"></span><br><span id="c-diff" style="color:var(--muted)"></span></div>
         </div>
       </div>
@@ -381,10 +400,12 @@ body {
           <div class="legend-row"><svg width="16" height="14" viewBox="0 0 16 14"><path d="M1 13L8 1l7 12z" fill="#9a8a7a" stroke="#23305a" stroke-width="1.6" stroke-linejoin="round"/><path d="M5.6 5.2L8 1l2.4 4.2-1.2.8L8 5l-1.2 1z" fill="#fff"/></svg>Gunung</div>
           <div class="legend-row"><svg width="16" height="14" viewBox="0 0 16 14"><path d="M1 11c3-4 5 2 8-3s4-4 6-6" fill="none" stroke="#2f8fe0" stroke-width="3" stroke-linecap="round"/></svg>Sungai</div>
           <div class="legend-row"><svg width="16" height="14" viewBox="0 0 16 14"><rect x="7" y="9" width="2" height="4" fill="#8a5a34"/><circle cx="8" cy="6" r="5" fill="#3fae5a" stroke="#23305a" stroke-width="1.6"/></svg>Hutan</div>
+          <div class="legend-row"><span class="sw night"></span>Sisi malam</div>
+          <div class="legend-row"><span class="sw line"></span>Garis siang/malam</div>
           <div class="legend-row"><svg width="16" height="14" viewBox="0 0 16 14"><rect x="1" y="2" width="14" height="10" rx="3" fill="#4cc3f1" stroke="#23305a" stroke-width="1.6"/><path d="M3 7c1.5-1.5 3 1.5 4.5 0s3 1.5 4.5 0" fill="none" stroke="#fff" stroke-width="1.4" stroke-linecap="round"/></svg>Laut</div>
         </div>
       </div>
-      <div class="hint">Seret untuk geser · klik kanan / dua jari untuk memutar · scroll untuk zoom</div>
+      <div class="hint">Garis kuning = batas siang/malam saat ini<br>Seret untuk geser · klik kanan / dua jari untuk memutar · scroll untuk zoom</div>
     </div>
 
     <aside class="roster" aria-label="Daftar bandara">
@@ -402,7 +423,7 @@ body {
     </aside>
   </section>
 
-  <p class="foot">Batas provinsi: Peta Dasar BAKOSURTANAL (disederhanakan). Posisi gunung, sungai, dan hutan bersifat ilustratif. Indonesia tidak memakai waktu musim panas, jadi selisih antarzona selalu tetap: WIB +7, WITA +8, WIT +9 jam dari UTC.</p>
+  <p class="foot">Batas provinsi: Peta Dasar BAKOSURTANAL (disederhanakan). Posisi gunung, sungai, dan hutan bersifat ilustratif. Jam terbit/terbenam dihitung dengan rumus astronomi (akurasi sekitar ±1 menit, di permukaan laut). Indonesia tidak memakai waktu musim panas, jadi selisih antarzona selalu tetap: WIB +7, WITA +8, WIT +9 jam dari UTC.</p>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -567,6 +588,53 @@ function diffText(zone) {
   return `${hrs} ${diff > 0 ? "lebih cepat" : "lebih lambat"} dari jam perangkat Anda`;
 }
 
+/* ---------- Sun: sunrise/sunset and the subsolar point (SunCalc / NOAA formulas) ---------- */
+const RAD = Math.PI / 180, DAY_MS = 864e5, J1970 = 2440588, J2000 = 2451545, OBLIQ = RAD * 23.4397;
+const toDays = ms => ms / DAY_MS - 0.5 + J1970 - J2000;
+const fromJulian = j => (j + 0.5 - J1970) * DAY_MS;
+const solarMeanAnomaly = d => RAD * (357.5291 + 0.98560028 * d);
+const eclipticLongitude = M =>
+  M + RAD * (1.9148 * Math.sin(M) + 0.02 * Math.sin(2 * M) + 0.0003 * Math.sin(3 * M)) + RAD * 102.9372 + Math.PI;
+const solarDeclination = L => Math.asin(Math.sin(L) * Math.sin(OBLIQ));
+const rightAscension = L => Math.atan2(Math.sin(L) * Math.cos(OBLIQ), Math.cos(L));
+
+// Sunrise / sunset (sun's upper limb at the horizon, with refraction) for the day containing `ms`.
+function sunTimes(lat, lon, ms) {
+  const lw = -lon * RAD, phi = lat * RAD, d = toDays(ms);
+  const n = Math.round(d - 0.0009 - lw / (2 * Math.PI));
+  const ds = 0.0009 + lw / (2 * Math.PI) + n;
+  const M = solarMeanAnomaly(ds), L = eclipticLongitude(M), dec = solarDeclination(L);
+  const transit = a => J2000 + a + 0.0053 * Math.sin(M) - 0.0069 * Math.sin(2 * L);
+  const noon = transit(ds);
+  const w = Math.acos((Math.sin(-0.833 * RAD) - Math.sin(phi) * Math.sin(dec)) / (Math.cos(phi) * Math.cos(dec)));
+  const set = transit(0.0009 + (w + lw) / (2 * Math.PI) + n);
+  return { rise: fromJulian(noon - (set - noon)), set: fromJulian(set) };
+}
+// Point on Earth where the sun is straight overhead (radians).
+function subsolarPoint(ms) {
+  const d = toDays(ms), L = eclipticLongitude(solarMeanAnomaly(d));
+  const lon = rightAscension(L) - RAD * (280.16 + 360.9856235 * d);
+  return { lat: solarDeclination(L), lon: Math.atan2(Math.sin(lon), Math.cos(lon)) };
+}
+const sunCache = new Map();
+function airportSun(ap, now) {
+  const off = ZONES[ap.zone].offset * 3600e3;
+  const dayStart = Math.floor((now + off) / DAY_MS) * DAY_MS - off;   // local midnight, as UTC ms
+  const key = ap.iata + dayStart;
+  if (!sunCache.has(key)) sunCache.set(key, sunTimes(ap.lat, ap.lon, dayStart + DAY_MS / 2));
+  return sunCache.get(key);
+}
+const zoneHM = (zone, ms) => { const d = new Date(ms + ZONES[zone].offset * 3600e3); return `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`; };
+function durText(ms) {
+  const m = Math.round(Math.abs(ms) / 60000), h = Math.floor(m / 60);
+  return h ? `${h} jam ${m % 60} menit` : `${m} menit`;
+}
+function sunNote(sun, now) {
+  if (now < sun.rise) return `Matahari terbit ${durText(sun.rise - now)} lagi`;
+  if (now < sun.set) return `Matahari terbenam ${durText(sun.set - now)} lagi`;
+  return `Matahari sudah terbenam ${durText(now - sun.set)} lalu`;
+}
+
 /* =====================  3D SCENE  ===================== */
 const board = document.getElementById("board");
 const canvas = document.getElementById("scene");
@@ -609,7 +677,32 @@ const toonRamp = (() => {
 })();
 // faceted low-poly look: split vertices so every face gets its own normal
 const facet = g => { const n = g.index ? g.toNonIndexed() : g; n.computeVertexNormals(); return n; };
-const toon = (color, extra = {}) => new THREE.MeshToonMaterial(Object.assign({ color, gradientMap: toonRamp }, extra));
+// Day/night: every lit surface is darkened where the sun is below the horizon.
+const SUN = { value: new THREE.Vector3(0, 0, 1) };   // subsolar lon, lat (radians), shading on/off
+const DAYNIGHT_GLSL = `
+  uniform vec3 uSun;
+  vec3 dayNight(vec3 c, vec2 xz) {
+    if (uSun.z < 0.5) return c;
+    float lon = radians(xz.x + ${CX.toFixed(1)});
+    float lat = radians(${CY.toFixed(1)} - xz.y);
+    float s = sin(lat) * sin(uSun.y) + cos(lat) * cos(uSun.y) * cos(lon - uSun.x);
+    float day = smoothstep(-0.06, 0.035, s);
+    float dusk = 1.0 - smoothstep(0.0, 0.08, abs(s + 0.012));
+    vec3 col = mix(c * vec3(0.30, 0.34, 0.62), c, day);
+    return mix(col, col * vec3(1.2, 0.86, 0.66) + vec3(0.07, 0.025, 0.0), dusk * 0.55);
+  }
+`;
+function withDayNight(mat) {
+  mat.onBeforeCompile = shader => {
+    shader.uniforms.uSun = SUN;
+    shader.vertexShader = "varying vec3 vDNWorld;\n" + shader.vertexShader.replace("#include <project_vertex>",
+      "#include <project_vertex>\n{ vec4 dnw = vec4(transformed, 1.0);\n#ifdef USE_INSTANCING\n dnw = instanceMatrix * dnw;\n#endif\n vDNWorld = (modelMatrix * dnw).xyz; }");
+    shader.fragmentShader = "varying vec3 vDNWorld;\n" + DAYNIGHT_GLSL + shader.fragmentShader.replace("#include <dithering_fragment>",
+      "#include <dithering_fragment>\ngl_FragColor.rgb = dayNight(gl_FragColor.rgb, vDNWorld.xz);");
+  };
+  return mat;
+}
+const toon = (color, extra = {}) => withDayNight(new THREE.MeshToonMaterial(Object.assign({ color, gradientMap: toonRamp }, extra)));
 
 function provinceShapes(geom) {
   return geom.coordinates.map(poly => {
@@ -650,7 +743,7 @@ function buildScene() {
   seaMat = new THREE.ShaderMaterial({
     uniforms: {
       uTime: { value: 0 }, uSea: { value: col("--sea") }, uFoam: { value: col("--sea-foam") },
-      uDeep: { value: col("--sea-deep") }, uFog: { value: col("--sky") }, uFogNear: { value: 45 }, uFogFar: { value: 110 },
+      uDeep: { value: col("--sea-deep") }, uFog: { value: col("--sky") }, uFogNear: { value: 45 }, uFogFar: { value: 110 }, uSun: SUN,
     },
     vertexShader: `
       varying vec2 vP; varying float vDist;
@@ -662,6 +755,7 @@ function buildScene() {
         gl_Position = projectionMatrix * mv;
       }`,
     fragmentShader: `
+      ${DAYNIGHT_GLSL}
       uniform float uTime; uniform vec3 uSea; uniform vec3 uFoam; uniform vec3 uDeep; uniform vec3 uFog; uniform float uFogNear; uniform float uFogFar;
       varying vec2 vP; varying float vDist;
       void main() {
@@ -672,6 +766,7 @@ function buildScene() {
         float foam = smoothstep(0.86, 0.9, w) * (1.0 - smoothstep(0.9, 0.97, w));
         c = mix(c, uFoam, foam * 0.45);
         float f = smoothstep(uFogNear, uFogFar, vDist);
+        c = dayNight(c, vP);
         gl_FragColor = vec4(mix(c, uFog, f), 1.0);
       }`,
   });
@@ -794,9 +889,9 @@ function buildScene() {
   scene.add(trunk, canopy);
 
   // Airport pins: a little post with a bobbing zone-coloured ball
-  mats.post = toon(0xffffff);
+  mats.post = new THREE.MeshToonMaterial({ color: 0xffffff, gradientMap: toonRamp });
   mats.pin = {};
-  Object.keys(ZONES).forEach(z => { mats.pin[z] = toon(col("--" + ZONES[z].cls), { emissive: 0x000000 }); });
+  Object.keys(ZONES).forEach(z => { mats.pin[z] = new THREE.MeshToonMaterial({ color: col("--" + ZONES[z].cls), gradientMap: toonRamp, emissive: 0x000000 }); });
   mats.ring = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9, side: THREE.DoubleSide });
   const postGeo = new THREE.CylinderGeometry(0.025, 0.025, 0.42, 6);
   const ballGeo = new THREE.SphereGeometry(1, 14, 10);
@@ -843,6 +938,39 @@ function buildScene() {
   controls.autoRotateSpeed = 0.6;
   controls.addEventListener("start", () => { flight = null; userMoved = true; });
   applyTheme();
+}
+
+/* ---------- Day/night line (terminator) ---------- */
+let terminator = null;
+const termMat = new THREE.MeshBasicMaterial({ color: 0xffc233 });
+function updateSun(now) {
+  const sp = subsolarPoint(now);
+  SUN.value.x = sp.lon; SUN.value.y = sp.lat;
+  if (!renderer || !PROVINCES) return;
+  const minute = Math.floor(now / 60000);
+  if (terminator && terminator.userData.minute === minute) return;
+  // great circle 90° away from the subsolar point
+  const S = new THREE.Vector3(Math.cos(sp.lat) * Math.cos(sp.lon), Math.cos(sp.lat) * Math.sin(sp.lon), Math.sin(sp.lat));
+  const U = new THREE.Vector3().crossVectors(S, new THREE.Vector3(0, 0, 1)).normalize();
+  const V = new THREE.Vector3().crossVectors(S, U);
+  const runs = [[]];
+  for (let i = 0; i <= 1440; i++) {
+    const a = (i / 1440) * Math.PI * 2;
+    const P = U.clone().multiplyScalar(Math.cos(a)).add(V.clone().multiplyScalar(Math.sin(a)));
+    const lat = Math.asin(P.z) / RAD, lon = Math.atan2(P.y, P.x) / RAD;
+    const inside = lon > 84 && lon < 152 && lat > -19 && lat < 14;
+    if (inside) runs[runs.length - 1].push(new THREE.Vector3(toX(lon), LAND_H + 0.1, toZ(lat)));
+    else if (runs[runs.length - 1].length) runs.push([]);
+  }
+  if (terminator) { scene.remove(terminator); terminator.children.forEach(c => c.geometry.dispose()); }
+  terminator = new THREE.Group();
+  terminator.userData.minute = minute;
+  runs.filter(r => r.length > 2).forEach(r => {
+    const geo = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(r), r.length, 0.06, 6, false);
+    terminator.add(new THREE.Mesh(geo, termMat));
+  });
+  terminator.visible = SUN.value.z > 0.5;
+  scene.add(terminator);
 }
 
 /* ---------- Theme ---------- */
@@ -920,7 +1048,7 @@ AIRPORTS.forEach(ap => {
   const b = document.createElement("button");
   b.type = "button";
   b.className = `tag ${ZONES[ap.zone].cls}`;
-  b.innerHTML = `<span class="code">${ap.iata}<i>/${ap.icao}</i></span><time>--:--</time>`;
+  b.innerHTML = `<span class="code">${ap.iata}<i>/${ap.icao}</i></span><svg class="ico-sunset" width="14" height="12" viewBox="0 0 14 12" aria-hidden="true"><path d="M2.5 8.5a4.5 4.5 0 0 1 9 0" fill="#ff9a3c" stroke="#23305a" stroke-width="1.4"/><path d="M1 10.5h12M7 1v2.5M5.5 2.5 7 4l1.5-1.5" fill="none" stroke="#23305a" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg><time>--:--</time>`;
   b.setAttribute("aria-label", `${ap.iata} / ${ap.icao}, Bandara ${ap.name}`);
   b.addEventListener("click", () => select(ap.iata, false));
   labelsEl.appendChild(b);
@@ -992,7 +1120,7 @@ function updateHover() {
   const d = pick(cx, cy);
   if (!d) { tipEl.hidden = true; canvas.style.cursor = ""; return; }
   let html;
-  if (d.kind === "airport") html = `<b>${d.ap.iata} / ${d.ap.icao}</b> <small>${esc(d.ap.city)}</small>`;
+  if (d.kind === "airport") html = `<b>${d.ap.iata} / ${d.ap.icao}</b> <small>${esc(d.ap.city)} · terbenam ${zoneHM(d.ap.zone, airportSun(d.ap, Date.now()).set)}</small>`;
   else if (d.kind === "mount") html = `<b>${esc(d.name)}</b> <small>${d.elev.toLocaleString("id-ID")} mdpl</small>`;
   else if (d.kind === "river") html = `<b>${esc(d.name)}</b>`;
   else html = `<b>${esc(d.name)}</b> <small>${d.zone} · UTC+${ZONES[d.zone].offset}</small>`;
@@ -1087,11 +1215,11 @@ AIRPORTS.forEach(ap => {
   li.dataset.search = `${ap.iata} ${ap.icao} ${ap.name} ${ap.city} ${ap.prov} ${ap.zone}`.toLowerCase();
   li.innerHTML = `<span class="row-code"><b>${ap.iata}</b><i>${ap.icao}</i></span>
     <span style="min-width:0"><div class="row-name">${esc(ap.name)}</div><div class="row-city">${esc(ap.city)} · ${esc(ap.prov)}</div></span>
-    <span class="row-time"><time>--:--:--</time><small></small></span>`;
+    <span class="row-time"><time>--:--:--</time><small></small><small class="row-sun"><svg class="ico-sunset" width="14" height="12" viewBox="0 0 14 12" aria-hidden="true"><path d="M2.5 8.5a4.5 4.5 0 0 1 9 0" fill="#ff9a3c" stroke="#23305a" stroke-width="1.4"/><path d="M1 10.5h12M7 1v2.5M5.5 2.5 7 4l1.5-1.5" fill="none" stroke="#23305a" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg><span></span></small></span>`;
   li.addEventListener("click", () => select(ap.iata, true));
   li.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); select(ap.iata, true); } });
   listEl.appendChild(li);
-  ap.row = li; ap.rowTime = li.querySelector("time"); ap.rowSmall = li.querySelector("small");
+  ap.row = li; ap.rowTime = li.querySelector("time"); ap.rowSmall = li.querySelector("small"); ap.rowSun = li.querySelector(".row-sun span");
 });
 const emptyEl = document.createElement("li");
 emptyEl.className = "empty";
@@ -1157,6 +1285,22 @@ btnLabels.addEventListener("click", () => {
   labelsOn = btnLabels.getAttribute("aria-pressed") !== "true";
   btnLabels.setAttribute("aria-pressed", String(labelsOn));
 });
+let labelSunset = false;
+const btnSunset = document.getElementById("btn-sunset");
+btnSunset.addEventListener("click", () => {
+  labelSunset = !labelSunset;
+  btnSunset.setAttribute("aria-pressed", String(labelSunset));
+  labelsEl.classList.toggle("sunset-mode", labelSunset);
+  tagEls.forEach(t => { t.w = 0; });
+  tick();
+});
+const btnNight = document.getElementById("btn-night");
+btnNight.addEventListener("click", () => {
+  const on = SUN.value.z < 0.5;
+  SUN.value.z = on ? 1 : 0;
+  if (terminator) terminator.visible = on;
+  btnNight.setAttribute("aria-pressed", String(on));
+});
 const btnSpin = document.getElementById("btn-spin");
 btnSpin.addEventListener("click", () => {
   if (!controls) return;
@@ -1190,18 +1334,27 @@ function tick() {
     document.querySelector(`[data-clock="${k}"]`).innerHTML = `${z[k].hm}<span class="sec">:${z[k].sec}</span>`;
     document.querySelector(`[data-date="${k}"]`).textContent = z[k].date;
   });
+  updateSun(now);
   AIRPORTS.forEach(ap => {
     const t = z[ap.zone];
+    const sun = airportSun(ap, now);
+    ap.sunsetHM = zoneHM(ap.zone, sun.set);
     ap.rowTime.textContent = `${t.hm}:${t.sec}`;
     ap.rowSmall.textContent = `${ap.zone} · ${partOfDay(t.h)}${t.dayKey !== refDay ? " · " + t.shortDate : ""}`;
+    if (ap.rowSun.textContent !== ap.sunsetHM) ap.rowSun.textContent = ap.sunsetHM;
     const tag = tagEls.get(ap.iata).time;
-    if (tag.textContent !== t.hm) tag.textContent = t.hm;
+    const text = labelSunset ? ap.sunsetHM : t.hm;
+    if (tag.textContent !== text) tag.textContent = text;
   });
   if (selected) {
     const ap = AIRPORTS.find(a => a.iata === selected);
     const t = z[ap.zone];
     document.getElementById("c-time").textContent = `${t.hm}:${t.sec}`;
     document.getElementById("c-date").textContent = `${t.date} · ${partOfDay(t.h)}`;
+    const sun = airportSun(ap, now);
+    document.getElementById("c-rise").textContent = zoneHM(ap.zone, sun.rise);
+    document.getElementById("c-set").textContent = zoneHM(ap.zone, sun.set);
+    document.getElementById("c-sunnote").textContent = sunNote(sun, now);
   }
 }
 tick();
