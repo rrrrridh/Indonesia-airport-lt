@@ -1,0 +1,633 @@
+<title>Jam Bandara Nusantara</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/*__LEAFLET_CSS__*/
+</style>
+<style>
+/* Layout: one-screen ops board — zone clocks across the top, map on the left, airport roster on the right (stacks on phones). */
+:root {
+  --bg: #eef2f5;
+  --surface: #ffffff;
+  --sea: #d7e3ec;
+  --line: #c9d4dd;
+  --fg: #16212b;
+  --muted: #5b6b78;
+  --accent: #1d4f7a;
+  --wib: #0d8a8c;
+  --wita: #c27c0e;
+  --wit: #b83d64;
+  --land-stroke: #ffffff;
+  --label-bg: rgba(255,255,255,.92);
+  --font-display: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --font-body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e151c; --surface: #16202a; --sea: #0b1922; --line: #263442;
+    --fg: #e4ebf1; --muted: #8fa1b0; --accent: #7fb6e6;
+    --wib: #2fc1c0; --wita: #f0ac3c; --wit: #ec6f97;
+    --land-stroke: #0b1922; --label-bg: rgba(18,28,37,.92);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e151c; --surface: #16202a; --sea: #0b1922; --line: #263442;
+  --fg: #e4ebf1; --muted: #8fa1b0; --accent: #7fb6e6;
+  --wib: #2fc1c0; --wita: #f0ac3c; --wit: #ec6f97;
+  --land-stroke: #0b1922; --label-bg: rgba(18,28,37,.92);
+  color-scheme: dark;
+}
+
+html, body { height: 100%; }
+body {
+  background: var(--bg); color: var(--fg);
+  font-family: var(--font-body); font-size: 14px; line-height: 1.45;
+  margin: 0;
+}
+.app {
+  min-height: 100%; box-sizing: border-box;
+  display: grid; grid-template-rows: auto auto 1fr auto; gap: 14px;
+  padding-inline: 16px; padding-block: 14px 16px;
+  max-width: 1600px; margin: 0 auto;
+}
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+/* Header */
+.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 8px 24px; }
+.brand h1 {
+  font-family: var(--font-display); font-weight: 700; font-size: 30px; line-height: 1;
+  letter-spacing: .01em; margin: 0; text-wrap: balance;
+}
+.brand p { margin: 4px 0 0; color: var(--muted); max-width: 62ch; }
+.you { font-size: 13px; color: var(--muted); text-align: right; }
+.you strong { font-family: var(--font-mono); color: var(--fg); font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* Zone clocks */
+.zones { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.zone {
+  --z: var(--accent);
+  appearance: none; font: inherit; color: inherit; text-align: left; cursor: pointer;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 6px;
+  border-top: 4px solid var(--z);
+  padding: 10px 14px 12px; display: grid; gap: 2px; min-width: 0;
+  transition: border-color .15s, box-shadow .15s;
+}
+.zone:hover { border-color: var(--z); }
+.zone:focus-visible { outline: 2px solid var(--z); outline-offset: 2px; }
+.zone[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--z); }
+.zone.wib { --z: var(--wib); } .zone.wita { --z: var(--wita); } .zone.wit { --z: var(--wit); }
+.zone-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.zone-code { font-family: var(--font-display); font-weight: 700; font-size: 22px; letter-spacing: .04em; color: var(--z); }
+.zone-off { font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+.zone-time {
+  font-family: var(--font-mono); font-weight: 700; font-size: clamp(26px, 3.4vw, 40px);
+  line-height: 1.1; font-variant-numeric: tabular-nums; letter-spacing: -.01em;
+}
+.zone-time .sec { color: var(--muted); font-size: .6em; }
+.zone-meta { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Main grid */
+.main { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 14px; min-height: 520px; }
+@media (min-width: 901px) {
+  .app { height: 100%; }
+  .main { min-height: 520px; }
+  .roster { min-height: 0; }
+}
+.map-wrap {
+  position: relative; min-width: 0; min-height: 420px;
+  border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--sea);
+}
+#map { position: absolute; inset: 0; background: var(--sea); font-family: var(--font-body); }
+.legend {
+  position: absolute; left: 10px; bottom: 10px; z-index: 500;
+  background: var(--label-bg); border: 1px solid var(--line); border-radius: 6px;
+  padding: 8px 10px; font-size: 12px; display: grid; gap: 4px;
+}
+.legend-title { font-family: var(--font-display); font-weight: 600; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.legend-row { display: flex; align-items: center; gap: 8px; }
+.sw { width: 12px; height: 12px; border-radius: 2px; flex: none; }
+.sw.wib { background: var(--wib); } .sw.wita { background: var(--wita); } .sw.wit { background: var(--wit); }
+.legend-note { color: var(--muted); font-size: 11px; max-width: 26ch; }
+.map-tools {
+  position: absolute; right: 10px; top: 10px; z-index: 500;
+  display: flex; gap: 6px;
+}
+.chip-btn {
+  appearance: none; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;
+  background: var(--label-bg); color: var(--fg); border: 1px solid var(--line); border-radius: 999px;
+  padding: 5px 11px;
+}
+.chip-btn[aria-pressed="true"] { background: var(--fg); color: var(--surface); border-color: var(--fg); }
+.chip-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Leaflet theming */
+.leaflet-container { background: var(--sea); }
+.leaflet-control-zoom a { background: var(--surface) !important; color: var(--fg) !important; border-color: var(--line) !important; }
+.leaflet-control-attribution { background: var(--label-bg) !important; color: var(--muted) !important; font-size: 10px; }
+.leaflet-control-attribution a { color: var(--accent); }
+.leaflet-tooltip.prov-tip {
+  background: var(--label-bg); color: var(--fg); border: 1px solid var(--line);
+  box-shadow: none; font-family: var(--font-body); font-size: 12px; padding: 4px 8px;
+}
+.leaflet-tooltip.prov-tip::before { display: none; }
+.leaflet-popup-content-wrapper, .leaflet-popup-tip { background: var(--surface); color: var(--fg); box-shadow: 0 6px 24px rgba(0,0,0,.18); }
+.leaflet-popup-content { margin: 12px 14px; font-family: var(--font-body); font-size: 13px; line-height: 1.4; min-width: 220px; }
+.leaflet-container a.leaflet-popup-close-button { color: var(--muted); }
+
+.meridian-label {
+  font-family: var(--font-mono); font-size: 10px; color: var(--muted); white-space: nowrap;
+  transform: translate(4px, 2px);
+}
+
+/* Airport markers */
+.ap { --z: var(--accent); }
+.ap.wib { --z: var(--wib); } .ap.wita { --z: var(--wita); } .ap.wit { --z: var(--wit); }
+.ap .pin {
+  position: absolute; left: -5px; top: -5px; width: 10px; height: 10px; border-radius: 50%;
+  background: var(--z); border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--z);
+}
+.ap.hub .pin { left: -6px; top: -6px; width: 12px; height: 12px; }
+.ap .tag {
+  position: absolute; left: 9px; top: -10px; white-space: nowrap; pointer-events: auto;
+  background: var(--label-bg); border: 1px solid var(--line); border-left: 3px solid var(--z);
+  border-radius: 3px; padding: 1px 5px; font-size: 11px; line-height: 16px;
+  display: flex; gap: 5px; align-items: baseline;
+}
+.ap .tag b { font-family: var(--font-display); font-weight: 700; font-size: 12px; letter-spacing: .04em; }
+.ap .tag time { font-family: var(--font-mono); font-weight: 500; font-variant-numeric: tabular-nums; }
+.labels-off .ap .tag { display: none; }
+.zoom-low .ap:not(.hub) .tag { display: none; }
+.zoom-min .ap .tag { display: none; }
+.ap.dim { opacity: .25; }
+.ap.active .pin { box-shadow: 0 0 0 4px color-mix(in srgb, var(--z) 35%, transparent); }
+
+.pop-code { font-family: var(--font-display); font-weight: 700; font-size: 26px; line-height: 1; letter-spacing: .04em; }
+.pop-name { font-weight: 600; margin-top: 2px; }
+.pop-sub { color: var(--muted); font-size: 12px; }
+.pop-time { font-family: var(--font-mono); font-weight: 700; font-size: 28px; font-variant-numeric: tabular-nums; margin-top: 8px; line-height: 1.1; }
+.pop-date { font-size: 12px; color: var(--muted); }
+.pop-diff { margin-top: 6px; font-size: 12px; }
+.zpill {
+  display: inline-block; font-family: var(--font-display); font-weight: 700; font-size: 12px; letter-spacing: .05em;
+  padding: 1px 7px; border-radius: 3px; color: #fff; vertical-align: middle;
+}
+.zpill.wib { background: var(--wib); } .zpill.wita { background: var(--wita); } .zpill.wit { background: var(--wit); }
+:root[data-theme="dark"] .zpill { color: #0e151c; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .zpill { color: #0e151c; } }
+
+/* Roster */
+.roster {
+  min-width: 0; display: flex; flex-direction: column;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 6px; overflow: hidden;
+}
+.roster-head { padding: 12px 12px 10px; border-bottom: 1px solid var(--line); display: grid; gap: 8px; }
+.roster-title { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.roster-title h2 { margin: 0; font-family: var(--font-display); font-weight: 600; font-size: 18px; letter-spacing: .06em; text-transform: uppercase; }
+.roster-title span { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+#q {
+  width: 100%; font: inherit; color: var(--fg); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 4px; padding: 7px 10px;
+}
+#q:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.filters { display: flex; flex-wrap: wrap; gap: 6px; }
+.filters .chip-btn { background: var(--bg); }
+.filters .chip-btn[aria-pressed="true"] { background: var(--fg); color: var(--surface); }
+.list { position: relative; list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; min-height: 0; }
+.row {
+  --z: var(--accent);
+  display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 10px; align-items: center;
+  padding: 8px 12px; border-bottom: 1px solid var(--line); cursor: pointer;
+  border-left: 3px solid transparent;
+}
+.row.wib { --z: var(--wib); } .row.wita { --z: var(--wita); } .row.wit { --z: var(--wit); }
+.row:hover, .row:focus-visible { background: var(--bg); border-left-color: var(--z); outline: none; }
+.row.active { background: var(--bg); border-left-color: var(--z); }
+.row-code { font-family: var(--font-display); font-weight: 700; font-size: 19px; letter-spacing: .04em; color: var(--z); }
+.row-name { font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row-city { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row-time { text-align: right; }
+.row-time time { display: block; font-family: var(--font-mono); font-weight: 700; font-size: 15px; font-variant-numeric: tabular-nums; }
+.row-time small { font-size: 11px; color: var(--muted); }
+.empty { padding: 24px 12px; color: var(--muted); text-align: center; }
+
+.foot { color: var(--muted); font-size: 12px; }
+
+@media (max-width: 900px) {
+  .main { grid-template-columns: minmax(0, 1fr); }
+  .map-wrap { min-height: 62vh; }
+  .roster { max-height: 70vh; }
+  .you { text-align: left; }
+}
+@media (max-width: 560px) {
+  .zones { gap: 6px; }
+  .zone { padding: 8px 8px 10px; }
+  .zone-code { font-size: 18px; }
+  .zone-off { display: none; }
+  .zone-time { font-size: 22px; }
+  .zone-time .sec { display: none; }
+  .zone-meta { font-size: 11px; }
+  .legend-note { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+</style>
+
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <h1>Jam Bandara Nusantara</h1>
+      <p>Waktu lokal bandara di seluruh Indonesia, dibagi per zona waktu WIB, WITA, dan WIT.</p>
+    </div>
+    <div class="you">Waktu perangkat Anda: <strong id="you-time">--:--:--</strong><br><span id="you-tz"></span></div>
+  </header>
+
+  <section class="zones" aria-label="Zona waktu Indonesia">
+    <button type="button" class="zone wib" data-zone="WIB" aria-pressed="false" id="zone-wib">
+      <span class="zone-head"><span class="zone-code">WIB</span><span class="zone-off">UTC+7</span></span>
+      <span class="zone-time" data-clock="WIB">--:--<span class="sec">:--</span></span>
+      <span class="zone-meta"><span data-date="WIB"></span> · <span data-count="WIB"></span> bandara</span>
+    </button>
+    <button type="button" class="zone wita" data-zone="WITA" aria-pressed="false" id="zone-wita">
+      <span class="zone-head"><span class="zone-code">WITA</span><span class="zone-off">UTC+8</span></span>
+      <span class="zone-time" data-clock="WITA">--:--<span class="sec">:--</span></span>
+      <span class="zone-meta"><span data-date="WITA"></span> · <span data-count="WITA"></span> bandara</span>
+    </button>
+    <button type="button" class="zone wit" data-zone="WIT" aria-pressed="false" id="zone-wit">
+      <span class="zone-head"><span class="zone-code">WIT</span><span class="zone-off">UTC+9</span></span>
+      <span class="zone-time" data-clock="WIT">--:--<span class="sec">:--</span></span>
+      <span class="zone-meta"><span data-date="WIT"></span> · <span data-count="WIT"></span> bandara</span>
+    </button>
+  </section>
+
+  <section class="main">
+    <div class="map-wrap">
+      <div id="map" role="application" aria-label="Peta Indonesia dengan lokasi bandara"></div>
+      <div class="map-tools">
+        <button type="button" class="chip-btn" id="btn-labels" aria-pressed="true">Label jam</button>
+        <button type="button" class="chip-btn" id="btn-reset" aria-pressed="false">Seluruh Indonesia</button>
+      </div>
+      <div class="legend" aria-label="Legenda zona waktu">
+        <div class="legend-title">Zona waktu</div>
+        <div class="legend-row"><span class="sw wib"></span>WIB · Waktu Indonesia Barat</div>
+        <div class="legend-row"><span class="sw wita"></span>WITA · Waktu Indonesia Tengah</div>
+        <div class="legend-row"><span class="sw wit"></span>WIT · Waktu Indonesia Timur</div>
+        <div class="legend-note">Garis putus-putus: meridian acuan 105°, 120°, dan 135° BT.</div>
+      </div>
+    </div>
+
+    <aside class="roster" aria-label="Daftar bandara">
+      <div class="roster-head">
+        <div class="roster-title"><h2>Bandara</h2><span id="count"></span></div>
+        <input id="q" type="search" placeholder="Cari kode, nama, kota, provinsi…" autocomplete="off" aria-label="Cari bandara">
+        <div class="filters" role="group" aria-label="Filter zona">
+          <button type="button" class="chip-btn" data-filter="ALL" aria-pressed="true" id="f-all">Semua</button>
+          <button type="button" class="chip-btn" data-filter="WIB" aria-pressed="false" id="f-wib">WIB</button>
+          <button type="button" class="chip-btn" data-filter="WITA" aria-pressed="false" id="f-wita">WITA</button>
+          <button type="button" class="chip-btn" data-filter="WIT" aria-pressed="false" id="f-wit">WIT</button>
+        </div>
+      </div>
+      <ul class="list" id="list"></ul>
+    </aside>
+  </section>
+
+  <p class="foot">Batas provinsi: Peta Dasar BAKOSURTANAL (disederhanakan). Indonesia tidak memakai waktu musim panas, jadi selisih antarzona selalu tetap: WIB +7, WITA +8, WIT +9 jam dari UTC.</p>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+const PROVINCES = /*__PROVINCES__*/null;
+
+const ZONES = {
+  WIB:  { offset: 7, name: "Waktu Indonesia Barat",  cls: "wib"  },
+  WITA: { offset: 8, name: "Waktu Indonesia Tengah", cls: "wita" },
+  WIT:  { offset: 9, name: "Waktu Indonesia Timur",  cls: "wit"  },
+};
+
+// [IATA, nama bandara, kota, provinsi, lat, lon, zona, hub]
+const AIRPORTS = [
+  ["BTJ", "Sultan Iskandar Muda", "Banda Aceh", "Aceh", 5.5229, 95.4206, "WIB", 0],
+  ["KNO", "Kualanamu", "Medan", "Sumatera Utara", 3.6422, 98.8853, "WIB", 1],
+  ["DTB", "Raja Sisingamangaraja XII (Silangit)", "Tapanuli Utara", "Sumatera Utara", 2.2597, 98.9919, "WIB", 0],
+  ["GNS", "Binaka", "Gunungsitoli", "Sumatera Utara", 1.1663, 97.7047, "WIB", 0],
+  ["PDG", "Minangkabau", "Padang", "Sumatera Barat", -0.7869, 100.2808, "WIB", 0],
+  ["PKU", "Sultan Syarif Kasim II", "Pekanbaru", "Riau", 0.4608, 101.4447, "WIB", 0],
+  ["BTH", "Hang Nadim", "Batam", "Kepulauan Riau", 1.1210, 104.1190, "WIB", 1],
+  ["TNJ", "Raja Haji Fisabilillah", "Tanjungpinang", "Kepulauan Riau", 0.9227, 104.5321, "WIB", 0],
+  ["NTX", "Raden Sadjad", "Natuna", "Kepulauan Riau", 3.9087, 108.3880, "WIB", 0],
+  ["DJB", "Sultan Thaha", "Jambi", "Jambi", -1.6380, 103.6444, "WIB", 0],
+  ["PLM", "Sultan Mahmud Badaruddin II", "Palembang", "Sumatera Selatan", -2.8983, 104.6997, "WIB", 1],
+  ["BKS", "Fatmawati Soekarno", "Bengkulu", "Bengkulu", -3.8637, 102.3390, "WIB", 0],
+  ["PGK", "Depati Amir", "Pangkalpinang", "Kep. Bangka Belitung", -2.1622, 106.1390, "WIB", 0],
+  ["TJQ", "H.A.S. Hanandjoeddin", "Tanjung Pandan", "Kep. Bangka Belitung", -2.7457, 107.7549, "WIB", 0],
+  ["TKG", "Radin Inten II", "Bandar Lampung", "Lampung", -5.2406, 105.1757, "WIB", 0],
+  ["CGK", "Soekarno–Hatta", "Tangerang", "Banten", -6.1256, 106.6559, "WIB", 1],
+  ["HLP", "Halim Perdanakusuma", "Jakarta Timur", "DKI Jakarta", -6.2666, 106.8910, "WIB", 0],
+  ["BDO", "Husein Sastranegara", "Bandung", "Jawa Barat", -6.9006, 107.5763, "WIB", 0],
+  ["KJT", "Kertajati", "Majalengka", "Jawa Barat", -6.6489, 108.1667, "WIB", 0],
+  ["SRG", "Jenderal Ahmad Yani", "Semarang", "Jawa Tengah", -6.9727, 110.3750, "WIB", 0],
+  ["SOC", "Adi Soemarmo", "Surakarta", "Jawa Tengah", -7.5161, 110.7569, "WIB", 0],
+  ["YIA", "Yogyakarta International", "Kulon Progo", "DI Yogyakarta", -7.9075, 110.0569, "WIB", 1],
+  ["SUB", "Juanda", "Surabaya", "Jawa Timur", -7.3798, 112.7868, "WIB", 1],
+  ["MLG", "Abdul Rachman Saleh", "Malang", "Jawa Timur", -7.9266, 112.7145, "WIB", 0],
+  ["BWX", "Banyuwangi", "Banyuwangi", "Jawa Timur", -8.3102, 114.3401, "WIB", 0],
+  ["PNK", "Supadio", "Pontianak", "Kalimantan Barat", -0.1507, 109.4039, "WIB", 1],
+  ["KTG", "Rahadi Oesman", "Ketapang", "Kalimantan Barat", -1.8166, 109.9633, "WIB", 0],
+  ["PKY", "Tjilik Riwut", "Palangka Raya", "Kalimantan Tengah", -2.2251, 113.9426, "WIB", 0],
+
+  ["DPS", "I Gusti Ngurah Rai", "Denpasar", "Bali", -8.7482, 115.1672, "WITA", 1],
+  ["LOP", "Zainuddin Abdul Madjid", "Lombok Tengah", "Nusa Tenggara Barat", -8.7573, 116.2767, "WITA", 0],
+  ["BMU", "Sultan Muhammad Salahuddin", "Bima", "Nusa Tenggara Barat", -8.5397, 118.6873, "WITA", 0],
+  ["LBJ", "Komodo", "Labuan Bajo", "Nusa Tenggara Timur", -8.4867, 119.8890, "WITA", 0],
+  ["TMC", "Lede Kalumbang", "Tambolaka", "Nusa Tenggara Timur", -9.4097, 119.2440, "WITA", 0],
+  ["WGP", "Umbu Mehang Kunda", "Waingapu", "Nusa Tenggara Timur", -9.6692, 120.3020, "WITA", 0],
+  ["ENE", "H. Hasan Aroeboesman", "Ende", "Nusa Tenggara Timur", -8.8493, 121.6606, "WITA", 0],
+  ["MOF", "Frans Seda", "Maumere", "Nusa Tenggara Timur", -8.6406, 122.2369, "WITA", 0],
+  ["KOE", "El Tari", "Kupang", "Nusa Tenggara Timur", -10.1716, 123.6711, "WITA", 1],
+  ["BDJ", "Syamsudin Noor", "Banjarmasin", "Kalimantan Selatan", -3.4424, 114.7626, "WITA", 0],
+  ["BPN", "Sultan Aji Muhammad Sulaiman Sepinggan", "Balikpapan", "Kalimantan Timur", -1.2683, 116.8945, "WITA", 1],
+  ["AAP", "Aji Pangeran Tumenggung Pranoto", "Samarinda", "Kalimantan Timur", -0.3745, 117.2557, "WITA", 0],
+  ["BEJ", "Kalimarau", "Berau", "Kalimantan Timur", 2.1555, 117.4322, "WITA", 0],
+  ["TRK", "Juwata", "Tarakan", "Kalimantan Utara", 3.3267, 117.5656, "WITA", 0],
+  ["UPG", "Sultan Hasanuddin", "Makassar", "Sulawesi Selatan", -5.0617, 119.5540, "WITA", 1],
+  ["MJU", "Tampa Padang", "Mamuju", "Sulawesi Barat", -2.5833, 119.0333, "WITA", 0],
+  ["PLW", "Mutiara SIS Al-Jufrie", "Palu", "Sulawesi Tengah", -0.9185, 119.9096, "WITA", 0],
+  ["LUW", "Syukuran Aminuddin Amir", "Luwuk", "Sulawesi Tengah", -1.0389, 122.7720, "WITA", 0],
+  ["GTO", "Djalaluddin", "Gorontalo", "Gorontalo", 0.6372, 122.8497, "WITA", 0],
+  ["MDC", "Sam Ratulangi", "Manado", "Sulawesi Utara", 1.5493, 124.9259, "WITA", 1],
+  ["KDI", "Haluoleo", "Kendari", "Sulawesi Tenggara", -4.0816, 122.4182, "WITA", 0],
+  ["BUW", "Betoambari", "Baubau", "Sulawesi Tenggara", -5.4869, 122.5690, "WITA", 0],
+
+  ["TTE", "Sultan Babullah", "Ternate", "Maluku Utara", 0.8314, 127.3810, "WIT", 0],
+  ["AMQ", "Pattimura", "Ambon", "Maluku", -3.7103, 128.0891, "WIT", 1],
+  ["LUV", "Karel Sadsuitubun", "Langgur", "Maluku", -5.7605, 132.7590, "WIT", 0],
+  ["SXK", "Mathilda Batlayeri", "Saumlaki", "Maluku", -7.9886, 131.3060, "WIT", 0],
+  ["SOQ", "Domine Eduard Osok", "Sorong", "Papua Barat Daya", -0.8945, 131.2879, "WIT", 1],
+  ["RJM", "Marinda", "Waisai", "Papua Barat Daya", -0.4219, 130.7731, "WIT", 0],
+  ["MKW", "Rendani", "Manokwari", "Papua Barat", -0.8918, 134.0490, "WIT", 0],
+  ["FKQ", "Torea", "Fakfak", "Papua Barat", -2.9202, 132.2670, "WIT", 0],
+  ["KNG", "Utarom", "Kaimana", "Papua Barat", -3.6445, 133.6956, "WIT", 0],
+  ["BIK", "Frans Kaisiepo", "Biak", "Papua", -1.1900, 136.1078, "WIT", 0],
+  ["DJJ", "Dortheys Hiyo Eluay (Sentani)", "Jayapura", "Papua", -2.5770, 140.5161, "WIT", 1],
+  ["NBX", "Douw Aturure", "Nabire", "Papua Tengah", -3.3682, 135.4960, "WIT", 0],
+  ["TIM", "Mozes Kilangin", "Timika", "Papua Tengah", -4.5283, 136.8873, "WIT", 0],
+  ["WMX", "Wamena", "Wamena", "Papua Pegunungan", -4.1025, 138.9572, "WIT", 0],
+  ["MKQ", "Mopah", "Merauke", "Papua Selatan", -8.5203, 140.4180, "WIT", 0],
+].map(([code, name, city, prov, lat, lon, zone, hub]) => ({ code, name, city, prov, lat, lon, zone, hub: !!hub }));
+
+const HARI = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+const BULAN = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+const pad = n => String(n).padStart(2, "0");
+
+// Indonesia has no daylight saving, so a fixed UTC offset is exact.
+function zoneNow(zone, now = Date.now()) {
+  const d = new Date(now + ZONES[zone].offset * 3600e3);
+  const h = d.getUTCHours(), m = d.getUTCMinutes(), s = d.getUTCSeconds();
+  return {
+    h, hm: `${pad(h)}:${pad(m)}`, sec: pad(s),
+    date: `${HARI[d.getUTCDay()]}, ${d.getUTCDate()} ${BULAN[d.getUTCMonth()]} ${d.getUTCFullYear()}`,
+    shortDate: `${d.getUTCDate()} ${BULAN[d.getUTCMonth()]}`,
+    dayKey: d.getUTCFullYear() * 400 + d.getUTCMonth() * 32 + d.getUTCDate(),
+  };
+}
+function partOfDay(h) {
+  if (h >= 4 && h < 10) return "Pagi";
+  if (h >= 10 && h < 15) return "Siang";
+  if (h >= 15 && h < 18) return "Sore";
+  return "Malam";
+}
+function diffText(zone) {
+  const mine = -new Date().getTimezoneOffset() / 60;
+  const diff = ZONES[zone].offset - mine;
+  if (diff === 0) return "Sama dengan waktu perangkat Anda";
+  const abs = Math.abs(diff);
+  const hrs = Number.isInteger(abs) ? `${abs} jam` : `${Math.floor(abs)} jam ${Math.round((abs % 1) * 60)} menit`;
+  return `${hrs} ${diff > 0 ? "lebih cepat" : "lebih lambat"} dari waktu perangkat Anda`;
+}
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+/* ---------- Map ---------- */
+const rootStyle = getComputedStyle(document.documentElement); // live object, follows theme changes
+const tok = name => rootStyle.getPropertyValue(name).trim();
+const INDONESIA = L.latLngBounds([-11.2, 94.6], [6.4, 141.2]);
+
+const map = L.map("map", {
+  zoomSnap: 0.25, minZoom: 3.5, maxZoom: 11, worldCopyJump: false,
+  maxBounds: INDONESIA.pad(0.6), attributionControl: true,
+});
+map.attributionControl.setPrefix(false);
+map.attributionControl.addAttribution("Batas provinsi © BAKOSURTANAL");
+map.fitBounds(INDONESIA, { padding: [8, 8] });
+
+let provLayer;
+function provStyle(f) {
+  const color = tok("--" + ZONES[f.properties.z].cls);
+  return { color: tok("--land-stroke"), weight: 0.8, fillColor: color, fillOpacity: 0.55 };
+}
+if (PROVINCES) {
+  provLayer = L.geoJSON(PROVINCES, {
+    style: provStyle,
+    onEachFeature(f, layer) {
+      const z = f.properties.z;
+      layer.bindTooltip(`<strong>${esc(f.properties.n)}</strong> · ${z} (UTC+${ZONES[z].offset})`, { sticky: true, className: "prov-tip", direction: "top", offset: [0, -6] });
+      layer.on({
+        mouseover: e => e.target.setStyle({ fillOpacity: 0.8 }),
+        mouseout: e => provLayer.resetStyle(e.target),
+      });
+    },
+  }).addTo(map);
+}
+
+// Reference meridians: UTC+7 = 105°E, UTC+8 = 120°E, UTC+9 = 135°E.
+const meridianLayer = L.layerGroup().addTo(map);
+function drawMeridians() {
+  meridianLayer.clearLayers();
+  [[105, "WIB"], [120, "WITA"], [135, "WIT"]].forEach(([lon, z]) => {
+    L.polyline([[7.5, lon], [-11.8, lon]], { color: tok("--" + ZONES[z].cls), weight: 1.2, dashArray: "4 5", opacity: 0.9, interactive: false }).addTo(meridianLayer);
+    L.marker([6.9, lon], { interactive: false, keyboard: false,
+      icon: L.divIcon({ className: "meridian-label", html: `${lon}° BT`, iconSize: null }) }).addTo(meridianLayer);
+  });
+}
+drawMeridians();
+
+const markers = new Map();
+AIRPORTS.forEach(ap => {
+  const cls = `ap ${ZONES[ap.zone].cls}${ap.hub ? " hub" : ""}`;
+  const icon = L.divIcon({
+    className: "", iconSize: [0, 0],
+    html: `<div class="${cls}" data-ap="${ap.code}"><span class="pin"></span><span class="tag"><b>${ap.code}</b><time>--:--</time></span></div>`,
+  });
+  const m = L.marker([ap.lat, ap.lon], { icon, title: `${ap.code} – ${ap.name}`, riseOnHover: true, zIndexOffset: ap.hub ? 500 : 0 }).addTo(map);
+  m.bindPopup(() => popupHtml(ap), { autoPanPadding: [30, 30] });
+  m.on("popupopen", () => setActive(ap.code));
+  m.on("popupclose", () => setActive(null));
+  markers.set(ap.code, m);
+});
+
+function popupHtml(ap) {
+  const t = zoneNow(ap.zone);
+  return `<div class="pop" data-pop="${ap.code}">
+    <div class="pop-code">${ap.code} <span class="zpill ${ZONES[ap.zone].cls}">${ap.zone}</span></div>
+    <div class="pop-name">Bandara ${esc(ap.name)}</div>
+    <div class="pop-sub">${esc(ap.city)}, ${esc(ap.prov)}</div>
+    <div class="pop-time"><span data-pop-time>${t.hm}:${t.sec}</span></div>
+    <div class="pop-date"><span data-pop-date>${t.date} · ${partOfDay(t.h)}</span></div>
+    <div class="pop-diff">${ZONES[ap.zone].name} (UTC+${ZONES[ap.zone].offset})<br><span style="color:var(--muted)">${diffText(ap.zone)}</span></div>
+  </div>`;
+}
+
+function updateZoomClass() {
+  const z = map.getZoom();
+  map.getContainer().classList.toggle("zoom-low", z < 5.75);
+  map.getContainer().classList.toggle("zoom-min", z < 4.5);
+}
+map.on("zoomend", updateZoomClass);
+updateZoomClass();
+
+/* ---------- Roster ---------- */
+const listEl = document.getElementById("list");
+const countEl = document.getElementById("count");
+const qEl = document.getElementById("q");
+let zoneFilter = "ALL";
+let activeCode = null;
+
+AIRPORTS.forEach(ap => {
+  const li = document.createElement("li");
+  li.className = `row ${ZONES[ap.zone].cls}`;
+  li.tabIndex = 0;
+  li.dataset.code = ap.code;
+  li.dataset.search = `${ap.code} ${ap.name} ${ap.city} ${ap.prov} ${ap.zone}`.toLowerCase();
+  li.innerHTML = `<span class="row-code">${ap.code}</span>
+    <span style="min-width:0"><div class="row-name">${esc(ap.name)}</div><div class="row-city">${esc(ap.city)} · ${esc(ap.prov)}</div></span>
+    <span class="row-time"><time>--:--:--</time><small></small></span>`;
+  const open = () => focusAirport(ap.code);
+  li.addEventListener("click", open);
+  li.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } });
+  listEl.appendChild(li);
+  ap.row = li;
+  ap.rowTime = li.querySelector("time");
+  ap.rowSmall = li.querySelector("small");
+});
+const emptyEl = document.createElement("li");
+emptyEl.className = "empty";
+emptyEl.textContent = "Tidak ada bandara yang cocok. Coba kode IATA (mis. DPS) atau nama kota.";
+listEl.appendChild(emptyEl);
+
+function focusAirport(code) {
+  const ap = AIRPORTS.find(a => a.code === code);
+  const m = markers.get(code);
+  map.flyTo([ap.lat, ap.lon], Math.max(map.getZoom(), 7), { duration: 0.8 });
+  map.once("moveend", () => m.openPopup());
+}
+function setActive(code) {
+  activeCode = code;
+  AIRPORTS.forEach(ap => {
+    ap.row.classList.toggle("active", ap.code === code);
+    const el = markers.get(ap.code).getElement();
+    el && el.querySelector(".ap").classList.toggle("active", ap.code === code);
+  });
+  if (code) {
+    const row = AIRPORTS.find(a => a.code === code).row;
+    if (!row.hidden) {
+      const top = row.offsetTop;
+      if (top < listEl.scrollTop || top + row.offsetHeight > listEl.scrollTop + listEl.clientHeight)
+        listEl.scrollTo({ top: top - listEl.clientHeight / 2 + row.offsetHeight / 2, behavior: "smooth" });
+    }
+  }
+}
+
+function applyFilter() {
+  const q = qEl.value.trim().toLowerCase();
+  let shown = 0;
+  AIRPORTS.forEach(ap => {
+    const zoneOk = zoneFilter === "ALL" || ap.zone === zoneFilter;
+    const visible = zoneOk && (!q || ap.row.dataset.search.includes(q));
+    ap.row.hidden = !visible;
+    const el = markers.get(ap.code).getElement();
+    el && el.querySelector(".ap").classList.toggle("dim", !visible);
+    if (visible) shown++;
+  });
+  emptyEl.hidden = shown > 0;
+  countEl.textContent = `${shown} dari ${AIRPORTS.length}`;
+  document.querySelectorAll("[data-filter]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.filter === zoneFilter)));
+  document.querySelectorAll(".zone").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.zone === zoneFilter)));
+}
+function setZone(z, fit) {
+  zoneFilter = z;
+  applyFilter();
+  if (fit) {
+    const pts = AIRPORTS.filter(a => z === "ALL" || a.zone === z).map(a => [a.lat, a.lon]);
+    map.flyToBounds(z === "ALL" ? INDONESIA : L.latLngBounds(pts).pad(0.15), { duration: 0.8 });
+  }
+}
+qEl.addEventListener("input", applyFilter);
+document.querySelectorAll("[data-filter]").forEach(b => b.addEventListener("click", () => setZone(b.dataset.filter, true)));
+document.querySelectorAll(".zone").forEach(b => b.addEventListener("click", () => setZone(zoneFilter === b.dataset.zone ? "ALL" : b.dataset.zone, true)));
+
+const btnLabels = document.getElementById("btn-labels");
+btnLabels.addEventListener("click", () => {
+  const on = btnLabels.getAttribute("aria-pressed") !== "true";
+  btnLabels.setAttribute("aria-pressed", String(on));
+  map.getContainer().classList.toggle("labels-off", !on);
+});
+document.getElementById("btn-reset").addEventListener("click", () => {
+  map.closePopup();
+  setZone("ALL", true);
+});
+
+Object.keys(ZONES).forEach(z => {
+  document.querySelector(`[data-count="${z}"]`).textContent = AIRPORTS.filter(a => a.zone === z).length;
+});
+
+/* ---------- Clock tick ---------- */
+const youTime = document.getElementById("you-time");
+const offMin = -new Date().getTimezoneOffset();
+document.getElementById("you-tz").textContent =
+  `${Intl.DateTimeFormat().resolvedOptions().timeZone || "Zona lokal"} · UTC${offMin >= 0 ? "+" : "−"}${Math.floor(Math.abs(offMin) / 60)}${Math.abs(offMin) % 60 ? ":" + pad(Math.abs(offMin) % 60) : ""}`;
+
+function tick() {
+  const now = Date.now();
+  const d = new Date(now);
+  youTime.textContent = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+
+  const z = {};
+  const refDay = zoneNow("WIB", now).dayKey;
+  Object.keys(ZONES).forEach(k => {
+    z[k] = zoneNow(k, now);
+    document.querySelector(`[data-clock="${k}"]`).innerHTML = `${z[k].hm}<span class="sec">:${z[k].sec}</span>`;
+    document.querySelector(`[data-date="${k}"]`).textContent = z[k].date;
+  });
+
+  AIRPORTS.forEach(ap => {
+    const t = z[ap.zone];
+    ap.rowTime.textContent = `${t.hm}:${t.sec}`;
+    const dayNote = t.dayKey !== refDay ? ` · ${t.shortDate}` : "";
+    ap.rowSmall.textContent = `${ap.zone} · ${partOfDay(t.h)}${dayNote}`;
+    const el = markers.get(ap.code).getElement();
+    if (el) {
+      const tEl = el.querySelector(".tag time");
+      if (tEl.textContent !== t.hm) tEl.textContent = t.hm;
+    }
+  });
+
+  const pop = document.querySelector("[data-pop]");
+  if (pop) {
+    const ap = AIRPORTS.find(a => a.code === pop.dataset.pop);
+    const t = z[ap.zone];
+    pop.querySelector("[data-pop-time]").textContent = `${t.hm}:${t.sec}`;
+    pop.querySelector("[data-pop-date]").textContent = `${t.date} · ${partOfDay(t.h)}`;
+  }
+}
+tick();
+applyFilter();
+setInterval(tick, 1000);
+
+// Re-colour vector layers when the viewer switches theme.
+const recolor = () => { if (provLayer) provLayer.setStyle(provStyle); drawMeridians(); };
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", recolor);
+new MutationObserver(recolor).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+</script>
