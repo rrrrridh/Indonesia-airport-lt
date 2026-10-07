@@ -11,12 +11,10 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 template = (ROOT / "src" / "dashboard.html").read_text(encoding="utf-8")
-leaflet_css = (ROOT / "src" / "leaflet.css").read_text(encoding="utf-8")
 provinces = json.loads((ROOT / "data" / "provinces.json").read_text(encoding="utf-8"))
 
 page = (
     template
-    .replace("/*__LEAFLET_CSS__*/", leaflet_css)
     .replace("/*__PROVINCES__*/null", json.dumps(provinces, separators=(",", ":")))
 )
 

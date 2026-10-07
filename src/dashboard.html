@@ -1,236 +1,297 @@
 <title>Jam Bandara Nusantara</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@500;700;800;900&display=swap">
 <style>
-/*__LEAFLET_CSS__*/
-</style>
-<style>
-/* Layout: one-screen ops board — zone clocks across the top, map on the left, airport roster on the right (stacks on phones). */
+/* Layout: a toy-box game HUD — chunky zone clocks across the top, a 3D island diorama on the left, the airport roster on the right (stacks on phones). */
 :root {
-  --bg: #eef2f5;
+  --sky: #bfe8ff;
+  --sky-2: #eaf8ff;
   --surface: #ffffff;
-  --sea: #d7e3ec;
-  --line: #c9d4dd;
-  --fg: #16212b;
-  --muted: #5b6b78;
-  --accent: #1d4f7a;
-  --wib: #0d8a8c;
-  --wita: #c27c0e;
-  --wit: #b83d64;
-  --land-stroke: #ffffff;
-  --label-bg: rgba(255,255,255,.92);
-  --font-display: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
-  --font-body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --surface-2: #f1f8ff;
+  --ink: #23305a;
+  --fg: #23305a;
+  --muted: #5f6d94;
+  --accent: #ff7a59;
+  --wib: #2ec4b6;
+  --wita: #ffb627;
+  --wit: #ff6f91;
+  /* scene colours (read by the 3D renderer) */
+  --sea: #4cc3f1;
+  --sea-foam: #c9f3ff;
+  --sea-deep: #2e9fd6;
+  --cliff: #d9a867;
+  --cliff-dark: #b98f4f;
+  --tree: #3fae5a;
+  --tree-2: #2b8a48;
+  --trunk: #8a5a34;
+  --river: #2f8fe0;
+  --rock: #9a8a7a;
+  --snow: #ffffff;
+  --cloud: #ffffff;
+  --night: 0;
+  --font-display: "Fredoka", "Baloo 2", "Trebuchet MS", system-ui, sans-serif;
+  --font-body: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --shadow-chunk: 0 5px 0 var(--ink);
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0e151c; --surface: #16202a; --sea: #0b1922; --line: #263442;
-    --fg: #e4ebf1; --muted: #8fa1b0; --accent: #7fb6e6;
-    --wib: #2fc1c0; --wita: #f0ac3c; --wit: #ec6f97;
-    --land-stroke: #0b1922; --label-bg: rgba(18,28,37,.92);
+    --sky: #131a3a; --sky-2: #1d2752; --surface: #222c5a; --surface-2: #1a2349;
+    --ink: #070b1f; --fg: #eef2ff; --muted: #a9b3dd; --accent: #ff9b7a;
+    --wib: #3fd8c9; --wita: #ffc54d; --wit: #ff86a5;
+    --sea: #1f4f8a; --sea-foam: #5f8fd0; --sea-deep: #173a6b;
+    --cliff: #b3966a; --cliff-dark: #7e6645; --tree: #2f8a4a; --tree-2: #216b39; --trunk: #6b4528;
+    --river: #5fb4ff; --rock: #7d7266; --snow: #e6ecff; --cloud: #b9c3e6; --night: 1;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #0e151c; --surface: #16202a; --sea: #0b1922; --line: #263442;
-  --fg: #e4ebf1; --muted: #8fa1b0; --accent: #7fb6e6;
-  --wib: #2fc1c0; --wita: #f0ac3c; --wit: #ec6f97;
-  --land-stroke: #0b1922; --label-bg: rgba(18,28,37,.92);
+  --sky: #131a3a; --sky-2: #1d2752; --surface: #222c5a; --surface-2: #1a2349;
+  --ink: #070b1f; --fg: #eef2ff; --muted: #a9b3dd; --accent: #ff9b7a;
+  --wib: #3fd8c9; --wita: #ffc54d; --wit: #ff86a5;
+  --sea: #1f4f8a; --sea-foam: #5f8fd0; --sea-deep: #173a6b;
+  --cliff: #b3966a; --cliff-dark: #7e6645; --tree: #2f8a4a; --tree-2: #216b39; --trunk: #6b4528;
+  --river: #5fb4ff; --rock: #7d7266; --snow: #e6ecff; --cloud: #b9c3e6; --night: 1;
   color-scheme: dark;
 }
 
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html, body { height: 100%; }
 body {
-  background: var(--bg); color: var(--fg);
-  font-family: var(--font-body); font-size: 14px; line-height: 1.45;
   margin: 0;
+  background: linear-gradient(180deg, var(--sky) 0%, var(--sky-2) 100%) fixed, var(--sky);
+  background-color: var(--sky);
+  color: var(--fg);
+  font-family: var(--font-body); font-size: 14px; line-height: 1.45;
 }
 .app {
-  min-height: 100%; box-sizing: border-box;
-  display: grid; grid-template-rows: auto auto 1fr auto; gap: 14px;
+  min-height: 100%;
+  display: grid; grid-template-rows: auto auto 1fr auto; gap: 16px;
   padding-inline: 16px; padding-block: 14px 16px;
   max-width: 1600px; margin: 0 auto;
 }
-*, *::before, *::after { box-sizing: border-box; }
-[hidden] { display: none !important; }
 
 /* Header */
-.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 8px 24px; }
-.brand h1 {
-  font-family: var(--font-display); font-weight: 700; font-size: 30px; line-height: 1;
-  letter-spacing: .01em; margin: 0; text-wrap: balance;
+.top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 24px; }
+.brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.logo {
+  flex: none; width: 48px; height: 48px; border-radius: 14px;
+  background: var(--accent); border: 3px solid var(--ink); box-shadow: 0 4px 0 var(--ink);
+  display: grid; place-items: center; transform: rotate(-6deg);
 }
-.brand p { margin: 4px 0 0; color: var(--muted); max-width: 62ch; }
-.you { font-size: 13px; color: var(--muted); text-align: right; }
-.you strong { font-family: var(--font-mono); color: var(--fg); font-weight: 700; font-variant-numeric: tabular-nums; }
+.brand h1 {
+  font-family: var(--font-display); font-weight: 700; font-size: 32px; line-height: 1;
+  margin: 0; letter-spacing: .005em; text-wrap: balance;
+}
+.brand p { margin: 4px 0 0; color: var(--muted); font-weight: 700; max-width: 62ch; }
+.you {
+  background: var(--surface); border: 3px solid var(--ink); border-radius: 14px; box-shadow: 0 4px 0 var(--ink);
+  padding: 6px 12px; font-size: 12px; color: var(--muted); font-weight: 700;
+}
+.you strong { font-family: var(--font-display); font-size: 18px; color: var(--fg); font-variant-numeric: tabular-nums; margin-left: 4px; }
 
 /* Zone clocks */
-.zones { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.zones { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
 .zone {
   --z: var(--accent);
-  appearance: none; font: inherit; color: inherit; text-align: left; cursor: pointer;
-  background: var(--surface); border: 1px solid var(--line); border-radius: 6px;
-  border-top: 4px solid var(--z);
-  padding: 10px 14px 12px; display: grid; gap: 2px; min-width: 0;
-  transition: border-color .15s, box-shadow .15s;
+  appearance: none; font: inherit; color: var(--fg); text-align: left; cursor: pointer; min-width: 0;
+  background: var(--surface); border: 3px solid var(--ink); border-radius: 18px; box-shadow: var(--shadow-chunk);
+  padding: 0; overflow: hidden; display: grid; grid-template-columns: auto minmax(0, 1fr);
+  transition: transform .12s ease, box-shadow .12s ease;
 }
-.zone:hover { border-color: var(--z); }
-.zone:focus-visible { outline: 2px solid var(--z); outline-offset: 2px; }
-.zone[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--z); }
+.zone:hover { transform: translateY(-2px); box-shadow: 0 7px 0 var(--ink); }
+.zone:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--ink); }
+.zone:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.zone[aria-pressed="true"] { background: color-mix(in srgb, var(--z) 22%, var(--surface)); }
 .zone.wib { --z: var(--wib); } .zone.wita { --z: var(--wita); } .zone.wit { --z: var(--wit); }
-.zone-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
-.zone-code { font-family: var(--font-display); font-weight: 700; font-size: 22px; letter-spacing: .04em; color: var(--z); }
-.zone-off { font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
-.zone-time {
-  font-family: var(--font-mono); font-weight: 700; font-size: clamp(26px, 3.4vw, 40px);
-  line-height: 1.1; font-variant-numeric: tabular-nums; letter-spacing: -.01em;
+.zone-badge {
+  background: var(--z); border-right: 3px solid var(--ink);
+  display: grid; place-content: center; text-align: center; padding: 8px 12px; min-width: 76px;
+  color: var(--ink);
 }
-.zone-time .sec { color: var(--muted); font-size: .6em; }
-.zone-meta { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.zone-badge b { font-family: var(--font-display); font-weight: 700; font-size: 22px; line-height: 1; }
+.zone-badge small { font-weight: 900; font-size: 11px; }
+.zone-body { padding: 8px 14px 10px; min-width: 0; display: grid; gap: 0; }
+.zone-name { font-size: 12px; font-weight: 800; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.zone-time {
+  font-family: var(--font-display); font-weight: 700; font-size: clamp(28px, 3.6vw, 42px);
+  line-height: 1.05; font-variant-numeric: tabular-nums;
+}
+.zone-time .sec { color: var(--muted); font-size: .55em; }
+.zone-meta { font-size: 12px; font-weight: 700; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-/* Main grid */
-.main { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 14px; min-height: 520px; }
+/* Main */
+.main { display: grid; grid-template-columns: minmax(0, 1fr) 370px; gap: 16px; min-height: 560px; }
 @media (min-width: 901px) {
   .app { height: 100%; }
-  .main { min-height: 520px; }
+  .main { min-height: 560px; }
   .roster { min-height: 0; }
 }
-.map-wrap {
-  position: relative; min-width: 0; min-height: 420px;
-  border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--sea);
+.board {
+  position: relative; min-width: 0; min-height: 440px; overflow: hidden;
+  border: 3px solid var(--ink); border-radius: 22px; box-shadow: 0 6px 0 var(--ink);
+  background: var(--sea-deep);
 }
-#map { position: absolute; inset: 0; background: var(--sea); font-family: var(--font-body); }
+#scene { position: absolute; inset: 0; display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+#scene:active { cursor: grabbing; }
+.labels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+
+/* Airport label bubbles */
+.tag {
+  --z: var(--accent);
+  position: absolute; left: 0; top: 0; pointer-events: auto; cursor: pointer;
+  appearance: none; font: inherit; color: var(--ink);
+  display: flex; align-items: center; gap: 5px; white-space: nowrap;
+  background: #fff; border: 2.5px solid var(--ink); border-radius: 10px;
+  padding: 1px 7px 1px 3px; box-shadow: 0 3px 0 var(--ink);
+  font-size: 11px; line-height: 16px; will-change: transform;
+}
+.tag::after {
+  content: ""; position: absolute; left: 50%; bottom: -8px; width: 10px; height: 10px; margin-left: -6px;
+  background: #fff; border-right: 2.5px solid var(--ink); border-bottom: 2.5px solid var(--ink);
+  transform: rotate(45deg); border-bottom-right-radius: 3px;
+}
+.tag.wib { --z: var(--wib); } .tag.wita { --z: var(--wita); } .tag.wit { --z: var(--wit); }
+.tag .code {
+  background: var(--z); color: var(--ink); border-radius: 6px; padding: 0 5px;
+  font-family: var(--font-display); font-weight: 700; font-size: 12px; letter-spacing: .02em;
+}
+.tag .code i { font-style: normal; font-weight: 600; opacity: .75; }
+.tag time { font-family: var(--font-display); font-weight: 700; font-size: 13px; font-variant-numeric: tabular-nums; }
+.tag:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.tag.sel { transform-origin: 50% 100%; z-index: 5; }
+.tag.sel .code { outline: 2px solid var(--ink); }
+.tag.dim { opacity: .35; }
+.labels-off .tag:not(.sel) { visibility: hidden !important; }
+.sea-label {
+  position: absolute; left: 0; top: 0; white-space: nowrap; pointer-events: none;
+  font-family: var(--font-display); font-weight: 600; font-style: italic; font-size: 13px; letter-spacing: .08em;
+  color: rgba(255,255,255,.85); text-shadow: 0 1px 0 rgba(0,40,80,.35);
+}
+
+/* Board HUD */
+.hud-top { position: absolute; top: 10px; right: 10px; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; z-index: 10; }
+.btn {
+  appearance: none; font: inherit; font-weight: 800; font-size: 12px; cursor: pointer;
+  background: var(--surface); color: var(--fg); border: 2.5px solid var(--ink); border-radius: 12px;
+  padding: 5px 11px; box-shadow: 0 3px 0 var(--ink); transition: transform .1s, box-shadow .1s;
+}
+.btn:hover { transform: translateY(-1px); box-shadow: 0 4px 0 var(--ink); }
+.btn:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--ink); }
+.btn[aria-pressed="true"] { background: var(--accent); color: var(--ink); }
+.btn:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 .legend {
-  position: absolute; left: 10px; bottom: 10px; z-index: 500;
-  background: var(--label-bg); border: 1px solid var(--line); border-radius: 6px;
-  padding: 8px 10px; font-size: 12px; display: grid; gap: 4px;
+  position: absolute; left: 10px; bottom: 10px; z-index: 10;
+  background: var(--surface); border: 2.5px solid var(--ink); border-radius: 14px; box-shadow: 0 3px 0 var(--ink);
+  padding: 8px 10px; font-size: 12px; font-weight: 700; display: grid; gap: 3px;
 }
-.legend-title { font-family: var(--font-display); font-weight: 600; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
-.legend-row { display: flex; align-items: center; gap: 8px; }
-.sw { width: 12px; height: 12px; border-radius: 2px; flex: none; }
+.legend h3 { margin: 0 0 2px; font-family: var(--font-display); font-weight: 600; font-size: 13px; color: var(--muted); }
+.legend-row { display: flex; align-items: center; gap: 7px; }
+.legend-cols { display: grid; grid-template-columns: auto auto; gap: 3px 14px; }
+.sw { width: 14px; height: 14px; border-radius: 4px; border: 2px solid var(--ink); flex: none; }
 .sw.wib { background: var(--wib); } .sw.wita { background: var(--wita); } .sw.wit { background: var(--wit); }
-.legend-note { color: var(--muted); font-size: 11px; max-width: 26ch; }
-.map-tools {
-  position: absolute; right: 10px; top: 10px; z-index: 500;
-  display: flex; gap: 6px;
+.legend svg { flex: none; }
+.hint { position: absolute; right: 10px; bottom: 10px; z-index: 10; font-size: 11px; font-weight: 700; color: rgba(255,255,255,.9); text-shadow: 0 1px 2px rgba(0,0,0,.4); text-align: right; }
+.tip {
+  position: absolute; left: 0; top: 0; z-index: 20; pointer-events: none; white-space: nowrap;
+  background: var(--ink); color: #fff; border-radius: 10px; padding: 4px 9px; font-size: 12px; font-weight: 700;
 }
-.chip-btn {
-  appearance: none; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;
-  background: var(--label-bg); color: var(--fg); border: 1px solid var(--line); border-radius: 999px;
-  padding: 5px 11px;
-}
-.chip-btn[aria-pressed="true"] { background: var(--fg); color: var(--surface); border-color: var(--fg); }
-.chip-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.tip small { color: #c8d0f0; font-weight: 700; }
 
-/* Leaflet theming */
-.leaflet-container { background: var(--sea); }
-.leaflet-control-zoom a { background: var(--surface) !important; color: var(--fg) !important; border-color: var(--line) !important; }
-.leaflet-control-attribution { background: var(--label-bg) !important; color: var(--muted) !important; font-size: 10px; }
-.leaflet-control-attribution a { color: var(--accent); }
-.leaflet-tooltip.prov-tip {
-  background: var(--label-bg); color: var(--fg); border: 1px solid var(--line);
-  box-shadow: none; font-family: var(--font-body); font-size: 12px; padding: 4px 8px;
+/* Airport card */
+.card {
+  --z: var(--accent);
+  position: absolute; top: 10px; left: 10px; z-index: 15; width: min(290px, calc(100% - 20px));
+  background: var(--surface); border: 3px solid var(--ink); border-radius: 18px; box-shadow: 0 5px 0 var(--ink);
+  overflow: hidden;
 }
-.leaflet-tooltip.prov-tip::before { display: none; }
-.leaflet-popup-content-wrapper, .leaflet-popup-tip { background: var(--surface); color: var(--fg); box-shadow: 0 6px 24px rgba(0,0,0,.18); }
-.leaflet-popup-content { margin: 12px 14px; font-family: var(--font-body); font-size: 13px; line-height: 1.4; min-width: 220px; }
-.leaflet-container a.leaflet-popup-close-button { color: var(--muted); }
-
-.meridian-label {
-  font-family: var(--font-mono); font-size: 10px; color: var(--muted); white-space: nowrap;
-  transform: translate(4px, 2px);
+.card.wib { --z: var(--wib); } .card.wita { --z: var(--wita); } .card.wit { --z: var(--wit); }
+.card-head { background: var(--z); border-bottom: 3px solid var(--ink); padding: 8px 12px; color: var(--ink); display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.card-codes { font-family: var(--font-display); font-weight: 700; font-size: 26px; line-height: 1; }
+.card-codes span { font-size: 18px; opacity: .8; }
+.card-codes small { display: block; font-family: var(--font-body); font-size: 10px; font-weight: 900; letter-spacing: .08em; margin-top: 3px; opacity: .75; }
+.card-close {
+  appearance: none; font: inherit; font-weight: 900; cursor: pointer; width: 28px; height: 28px; flex: none;
+  border-radius: 9px; border: 2.5px solid var(--ink); background: #fff; color: var(--ink); line-height: 1;
 }
-
-/* Airport markers */
-.ap { --z: var(--accent); }
-.ap.wib { --z: var(--wib); } .ap.wita { --z: var(--wita); } .ap.wit { --z: var(--wit); }
-.ap .pin {
-  position: absolute; left: -5px; top: -5px; width: 10px; height: 10px; border-radius: 50%;
-  background: var(--z); border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--z);
+.card-close:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+.card-body { padding: 10px 12px 12px; display: grid; gap: 2px; }
+.card-name { font-weight: 900; font-size: 14px; }
+.card-sub { color: var(--muted); font-size: 12px; font-weight: 700; }
+.card-time { font-family: var(--font-display); font-weight: 700; font-size: 38px; line-height: 1.05; font-variant-numeric: tabular-nums; margin-top: 6px; }
+.card-date { font-size: 12px; font-weight: 800; color: var(--muted); }
+.card-diff { margin-top: 6px; font-size: 12px; font-weight: 700; background: var(--surface-2); border-radius: 10px; padding: 6px 8px; }
+.pill {
+  display: inline-block; font-family: var(--font-display); font-weight: 700; font-size: 12px;
+  padding: 0 7px; border-radius: 7px; border: 2px solid var(--ink); background: var(--z); color: var(--ink);
 }
-.ap.hub .pin { left: -6px; top: -6px; width: 12px; height: 12px; }
-.ap .tag {
-  position: absolute; left: 9px; top: -10px; white-space: nowrap; pointer-events: auto;
-  background: var(--label-bg); border: 1px solid var(--line); border-left: 3px solid var(--z);
-  border-radius: 3px; padding: 1px 5px; font-size: 11px; line-height: 16px;
-  display: flex; gap: 5px; align-items: baseline;
-}
-.ap .tag b { font-family: var(--font-display); font-weight: 700; font-size: 12px; letter-spacing: .04em; }
-.ap .tag time { font-family: var(--font-mono); font-weight: 500; font-variant-numeric: tabular-nums; }
-.labels-off .ap .tag { display: none; }
-.zoom-low .ap:not(.hub) .tag { display: none; }
-.zoom-min .ap .tag { display: none; }
-.ap.dim { opacity: .25; }
-.ap.active .pin { box-shadow: 0 0 0 4px color-mix(in srgb, var(--z) 35%, transparent); }
-
-.pop-code { font-family: var(--font-display); font-weight: 700; font-size: 26px; line-height: 1; letter-spacing: .04em; }
-.pop-name { font-weight: 600; margin-top: 2px; }
-.pop-sub { color: var(--muted); font-size: 12px; }
-.pop-time { font-family: var(--font-mono); font-weight: 700; font-size: 28px; font-variant-numeric: tabular-nums; margin-top: 8px; line-height: 1.1; }
-.pop-date { font-size: 12px; color: var(--muted); }
-.pop-diff { margin-top: 6px; font-size: 12px; }
-.zpill {
-  display: inline-block; font-family: var(--font-display); font-weight: 700; font-size: 12px; letter-spacing: .05em;
-  padding: 1px 7px; border-radius: 3px; color: #fff; vertical-align: middle;
-}
-.zpill.wib { background: var(--wib); } .zpill.wita { background: var(--wita); } .zpill.wit { background: var(--wit); }
-:root[data-theme="dark"] .zpill { color: #0e151c; }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .zpill { color: #0e151c; } }
 
 /* Roster */
 .roster {
-  min-width: 0; display: flex; flex-direction: column;
-  background: var(--surface); border: 1px solid var(--line); border-radius: 6px; overflow: hidden;
+  min-width: 0; display: flex; flex-direction: column; overflow: hidden;
+  background: var(--surface); border: 3px solid var(--ink); border-radius: 22px; box-shadow: 0 6px 0 var(--ink);
 }
-.roster-head { padding: 12px 12px 10px; border-bottom: 1px solid var(--line); display: grid; gap: 8px; }
+.roster-head { padding: 12px 12px 10px; border-bottom: 3px solid var(--ink); display: grid; gap: 9px; background: var(--surface-2); }
 .roster-title { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
-.roster-title h2 { margin: 0; font-family: var(--font-display); font-weight: 600; font-size: 18px; letter-spacing: .06em; text-transform: uppercase; }
-.roster-title span { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.roster-title h2 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 20px; }
+.roster-title span { color: var(--muted); font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums; }
 #q {
-  width: 100%; font: inherit; color: var(--fg); background: var(--bg);
-  border: 1px solid var(--line); border-radius: 4px; padding: 7px 10px;
+  width: 100%; font: inherit; font-weight: 700; color: var(--fg); background: var(--surface);
+  border: 2.5px solid var(--ink); border-radius: 12px; padding: 7px 11px;
 }
-#q:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+#q::placeholder { color: var(--muted); }
+#q:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; }
 .filters { display: flex; flex-wrap: wrap; gap: 6px; }
-.filters .chip-btn { background: var(--bg); }
-.filters .chip-btn[aria-pressed="true"] { background: var(--fg); color: var(--surface); }
-.list { position: relative; list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; min-height: 0; }
+.filters .btn[data-filter="WIB"][aria-pressed="true"] { background: var(--wib); }
+.filters .btn[data-filter="WITA"][aria-pressed="true"] { background: var(--wita); }
+.filters .btn[data-filter="WIT"][aria-pressed="true"] { background: var(--wit); }
+.list { position: relative; list-style: none; margin: 0; padding: 6px; overflow-y: auto; flex: 1; min-height: 0; display: grid; gap: 6px; align-content: start; }
 .row {
   --z: var(--accent);
-  display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 10px; align-items: center;
-  padding: 8px 12px; border-bottom: 1px solid var(--line); cursor: pointer;
-  border-left: 3px solid transparent;
+  display: grid; grid-template-columns: 62px minmax(0, 1fr) auto; gap: 10px; align-items: center;
+  padding: 7px 10px 7px 7px; cursor: pointer; border-radius: 14px; border: 2.5px solid transparent;
 }
 .row.wib { --z: var(--wib); } .row.wita { --z: var(--wita); } .row.wit { --z: var(--wit); }
-.row:hover, .row:focus-visible { background: var(--bg); border-left-color: var(--z); outline: none; }
-.row.active { background: var(--bg); border-left-color: var(--z); }
-.row-code { font-family: var(--font-display); font-weight: 700; font-size: 19px; letter-spacing: .04em; color: var(--z); }
-.row-name { font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.row-city { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row:hover, .row:focus-visible { background: var(--surface-2); border-color: var(--ink); outline: none; }
+.row.active { background: color-mix(in srgb, var(--z) 25%, var(--surface)); border-color: var(--ink); }
+.row-code {
+  background: var(--z); border: 2.5px solid var(--ink); border-radius: 11px; color: var(--ink);
+  text-align: center; padding: 2px 0 3px; box-shadow: 0 2px 0 var(--ink);
+}
+.row-code b { display: block; font-family: var(--font-display); font-weight: 700; font-size: 17px; line-height: 1.1; }
+.row-code i { display: block; font-style: normal; font-weight: 900; font-size: 10px; letter-spacing: .06em; line-height: 1.1; }
+.row-name { font-weight: 900; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row-city { font-size: 12px; font-weight: 700; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .row-time { text-align: right; }
-.row-time time { display: block; font-family: var(--font-mono); font-weight: 700; font-size: 15px; font-variant-numeric: tabular-nums; }
-.row-time small { font-size: 11px; color: var(--muted); }
-.empty { padding: 24px 12px; color: var(--muted); text-align: center; }
+.row-time time { display: block; font-family: var(--font-display); font-weight: 700; font-size: 17px; font-variant-numeric: tabular-nums; }
+.row-time small { font-size: 11px; font-weight: 800; color: var(--muted); }
+.empty { padding: 24px 12px; color: var(--muted); text-align: center; font-weight: 700; }
+.nogl { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center; color: #fff; font-weight: 800; }
 
-.foot { color: var(--muted); font-size: 12px; }
+.foot { color: var(--muted); font-size: 12px; font-weight: 700; margin: 0; }
 
 @media (max-width: 900px) {
   .main { grid-template-columns: minmax(0, 1fr); }
-  .map-wrap { min-height: 62vh; }
-  .roster { max-height: 70vh; }
-  .you { text-align: left; }
+  .board { min-height: 66vh; }
+  .roster { max-height: 72vh; }
 }
-@media (max-width: 560px) {
-  .zones { gap: 6px; }
-  .zone { padding: 8px 8px 10px; }
-  .zone-code { font-size: 18px; }
-  .zone-off { display: none; }
-  .zone-time { font-size: 22px; }
+@media (max-width: 600px) {
+  .brand h1 { font-size: 26px; }
+  .logo { width: 40px; height: 40px; }
+  .zones { gap: 8px; }
+  .zone { grid-template-columns: minmax(0, 1fr); border-radius: 14px; }
+  .zone-badge { border-right: 0; border-bottom: 3px solid var(--ink); padding: 4px; min-width: 0; grid-auto-flow: column; gap: 6px; align-items: baseline; }
+  .zone-badge b { font-size: 17px; }
+  .zone-body { padding: 6px 8px 8px; }
+  .zone-name { display: none; }
+  .zone-time { font-size: 24px; }
   .zone-time .sec { display: none; }
   .zone-meta { font-size: 11px; }
-  .legend-note { display: none; }
+  .legend .legend-cols { display: none; }
+  .hint { display: none; }
+  .card { top: auto; bottom: 10px; }
+  .board { min-height: clamp(380px, 105vw, 66vh); }
 }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
@@ -240,65 +301,105 @@ body {
 <div class="app">
   <header class="top">
     <div class="brand">
-      <h1>Jam Bandara Nusantara</h1>
-      <p>Waktu lokal bandara di seluruh Indonesia, dibagi per zona waktu WIB, WITA, dan WIT.</p>
+      <div class="logo" aria-hidden="true">
+        <svg width="28" height="28" viewBox="0 0 28 28"><path d="M3 15l9-2 6-9c1-1.5 3.5-1 3 1l-2 8 6 1c1.5.3 1.5 2.4 0 2.7l-6 1 2 8c.5 2-2 2.5-3 1l-6-9-9-2c-1-.3-1-1.4 0-1.7z" fill="#fff" stroke="#23305a" stroke-width="2.2" stroke-linejoin="round"/></svg>
+      </div>
+      <div>
+        <h1>Jam Bandara Nusantara</h1>
+        <p>Jelajahi pulau-pulau Indonesia dan cek jam lokal setiap bandara di zona WIB, WITA, dan WIT.</p>
+      </div>
     </div>
-    <div class="you">Waktu perangkat Anda: <strong id="you-time">--:--:--</strong><br><span id="you-tz"></span></div>
+    <div class="you">Jam perangkat Anda <strong id="you-time">--:--:--</strong> <span id="you-tz"></span></div>
   </header>
 
   <section class="zones" aria-label="Zona waktu Indonesia">
     <button type="button" class="zone wib" data-zone="WIB" aria-pressed="false" id="zone-wib">
-      <span class="zone-head"><span class="zone-code">WIB</span><span class="zone-off">UTC+7</span></span>
-      <span class="zone-time" data-clock="WIB">--:--<span class="sec">:--</span></span>
-      <span class="zone-meta"><span data-date="WIB"></span> · <span data-count="WIB"></span> bandara</span>
+      <span class="zone-badge"><b>WIB</b><small>UTC+7</small></span>
+      <span class="zone-body">
+        <span class="zone-name">Waktu Indonesia Barat</span>
+        <span class="zone-time" data-clock="WIB">--:--<span class="sec">:--</span></span>
+        <span class="zone-meta"><span data-date="WIB"></span> · <span data-count="WIB"></span> bandara</span>
+      </span>
     </button>
     <button type="button" class="zone wita" data-zone="WITA" aria-pressed="false" id="zone-wita">
-      <span class="zone-head"><span class="zone-code">WITA</span><span class="zone-off">UTC+8</span></span>
-      <span class="zone-time" data-clock="WITA">--:--<span class="sec">:--</span></span>
-      <span class="zone-meta"><span data-date="WITA"></span> · <span data-count="WITA"></span> bandara</span>
+      <span class="zone-badge"><b>WITA</b><small>UTC+8</small></span>
+      <span class="zone-body">
+        <span class="zone-name">Waktu Indonesia Tengah</span>
+        <span class="zone-time" data-clock="WITA">--:--<span class="sec">:--</span></span>
+        <span class="zone-meta"><span data-date="WITA"></span> · <span data-count="WITA"></span> bandara</span>
+      </span>
     </button>
     <button type="button" class="zone wit" data-zone="WIT" aria-pressed="false" id="zone-wit">
-      <span class="zone-head"><span class="zone-code">WIT</span><span class="zone-off">UTC+9</span></span>
-      <span class="zone-time" data-clock="WIT">--:--<span class="sec">:--</span></span>
-      <span class="zone-meta"><span data-date="WIT"></span> · <span data-count="WIT"></span> bandara</span>
+      <span class="zone-badge"><b>WIT</b><small>UTC+9</small></span>
+      <span class="zone-body">
+        <span class="zone-name">Waktu Indonesia Timur</span>
+        <span class="zone-time" data-clock="WIT">--:--<span class="sec">:--</span></span>
+        <span class="zone-meta"><span data-date="WIT"></span> · <span data-count="WIT"></span> bandara</span>
+      </span>
     </button>
   </section>
 
   <section class="main">
-    <div class="map-wrap">
-      <div id="map" role="application" aria-label="Peta Indonesia dengan lokasi bandara"></div>
-      <div class="map-tools">
-        <button type="button" class="chip-btn" id="btn-labels" aria-pressed="true">Label jam</button>
-        <button type="button" class="chip-btn" id="btn-reset" aria-pressed="false">Seluruh Indonesia</button>
+    <div class="board" id="board">
+      <canvas id="scene" aria-label="Peta 3D Indonesia dengan lokasi bandara"></canvas>
+      <div class="labels" id="labels"></div>
+      <div class="tip" id="tip" hidden></div>
+
+      <div class="hud-top">
+        <button type="button" class="btn" id="btn-labels" aria-pressed="true">Label jam</button>
+        <button type="button" class="btn" id="btn-spin" aria-pressed="false">Putar</button>
+        <button type="button" class="btn" id="btn-reset">Seluruh Indonesia</button>
       </div>
-      <div class="legend" aria-label="Legenda zona waktu">
-        <div class="legend-title">Zona waktu</div>
-        <div class="legend-row"><span class="sw wib"></span>WIB · Waktu Indonesia Barat</div>
-        <div class="legend-row"><span class="sw wita"></span>WITA · Waktu Indonesia Tengah</div>
-        <div class="legend-row"><span class="sw wit"></span>WIT · Waktu Indonesia Timur</div>
-        <div class="legend-note">Garis putus-putus: meridian acuan 105°, 120°, dan 135° BT.</div>
+
+      <div class="card" id="card" hidden aria-live="polite">
+        <div class="card-head">
+          <div class="card-codes"><span id="c-iata"></span><span> / </span><span id="c-icao"></span><small>IATA / ICAO</small></div>
+          <button type="button" class="card-close" id="card-close" aria-label="Tutup">×</button>
+        </div>
+        <div class="card-body">
+          <div class="card-name" id="c-name"></div>
+          <div class="card-sub" id="c-sub"></div>
+          <div class="card-time" id="c-time">--:--:--</div>
+          <div class="card-date" id="c-date"></div>
+          <div class="card-diff"><span class="pill" id="c-zone"></span> <span id="c-zname"></span><br><span id="c-diff" style="color:var(--muted)"></span></div>
+        </div>
       </div>
+
+      <div class="legend" aria-label="Legenda peta">
+        <h3>Legenda</h3>
+        <div class="legend-row"><span class="sw wib"></span>WIB · UTC+7</div>
+        <div class="legend-row"><span class="sw wita"></span>WITA · UTC+8</div>
+        <div class="legend-row"><span class="sw wit"></span>WIT · UTC+9</div>
+        <div class="legend-cols">
+          <div class="legend-row"><svg width="16" height="14" viewBox="0 0 16 14"><path d="M1 13L8 1l7 12z" fill="#9a8a7a" stroke="#23305a" stroke-width="1.6" stroke-linejoin="round"/><path d="M5.6 5.2L8 1l2.4 4.2-1.2.8L8 5l-1.2 1z" fill="#fff"/></svg>Gunung</div>
+          <div class="legend-row"><svg width="16" height="14" viewBox="0 0 16 14"><path d="M1 11c3-4 5 2 8-3s4-4 6-6" fill="none" stroke="#2f8fe0" stroke-width="3" stroke-linecap="round"/></svg>Sungai</div>
+          <div class="legend-row"><svg width="16" height="14" viewBox="0 0 16 14"><rect x="7" y="9" width="2" height="4" fill="#8a5a34"/><circle cx="8" cy="6" r="5" fill="#3fae5a" stroke="#23305a" stroke-width="1.6"/></svg>Hutan</div>
+          <div class="legend-row"><svg width="16" height="14" viewBox="0 0 16 14"><rect x="1" y="2" width="14" height="10" rx="3" fill="#4cc3f1" stroke="#23305a" stroke-width="1.6"/><path d="M3 7c1.5-1.5 3 1.5 4.5 0s3 1.5 4.5 0" fill="none" stroke="#fff" stroke-width="1.4" stroke-linecap="round"/></svg>Laut</div>
+        </div>
+      </div>
+      <div class="hint">Seret untuk geser · klik kanan / dua jari untuk memutar · scroll untuk zoom</div>
     </div>
 
     <aside class="roster" aria-label="Daftar bandara">
       <div class="roster-head">
         <div class="roster-title"><h2>Bandara</h2><span id="count"></span></div>
-        <input id="q" type="search" placeholder="Cari kode, nama, kota, provinsi…" autocomplete="off" aria-label="Cari bandara">
+        <input id="q" type="search" placeholder="Cari IATA, ICAO, nama, kota…" autocomplete="off" aria-label="Cari bandara">
         <div class="filters" role="group" aria-label="Filter zona">
-          <button type="button" class="chip-btn" data-filter="ALL" aria-pressed="true" id="f-all">Semua</button>
-          <button type="button" class="chip-btn" data-filter="WIB" aria-pressed="false" id="f-wib">WIB</button>
-          <button type="button" class="chip-btn" data-filter="WITA" aria-pressed="false" id="f-wita">WITA</button>
-          <button type="button" class="chip-btn" data-filter="WIT" aria-pressed="false" id="f-wit">WIT</button>
+          <button type="button" class="btn" data-filter="ALL" aria-pressed="true" id="f-all">Semua</button>
+          <button type="button" class="btn" data-filter="WIB" aria-pressed="false" id="f-wib">WIB</button>
+          <button type="button" class="btn" data-filter="WITA" aria-pressed="false" id="f-wita">WITA</button>
+          <button type="button" class="btn" data-filter="WIT" aria-pressed="false" id="f-wit">WIT</button>
         </div>
       </div>
       <ul class="list" id="list"></ul>
     </aside>
   </section>
 
-  <p class="foot">Batas provinsi: Peta Dasar BAKOSURTANAL (disederhanakan). Indonesia tidak memakai waktu musim panas, jadi selisih antarzona selalu tetap: WIB +7, WITA +8, WIT +9 jam dari UTC.</p>
+  <p class="foot">Batas provinsi: Peta Dasar BAKOSURTANAL (disederhanakan). Posisi gunung, sungai, dan hutan bersifat ilustratif. Indonesia tidak memakai waktu musim panas, jadi selisih antarzona selalu tetap: WIB +7, WITA +8, WIT +9 jam dari UTC.</p>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <script>
 const PROVINCES = /*__PROVINCES__*/null;
 
@@ -308,87 +409,137 @@ const ZONES = {
   WIT:  { offset: 9, name: "Waktu Indonesia Timur",  cls: "wit"  },
 };
 
-// [IATA, nama bandara, kota, provinsi, lat, lon, zona, hub]
+// [IATA, ICAO, nama bandara, kota, provinsi, lat, lon, zona, hub]
 const AIRPORTS = [
-  ["BTJ", "Sultan Iskandar Muda", "Banda Aceh", "Aceh", 5.5229, 95.4206, "WIB", 0],
-  ["KNO", "Kualanamu", "Medan", "Sumatera Utara", 3.6422, 98.8853, "WIB", 1],
-  ["DTB", "Raja Sisingamangaraja XII (Silangit)", "Tapanuli Utara", "Sumatera Utara", 2.2597, 98.9919, "WIB", 0],
-  ["GNS", "Binaka", "Gunungsitoli", "Sumatera Utara", 1.1663, 97.7047, "WIB", 0],
-  ["PDG", "Minangkabau", "Padang", "Sumatera Barat", -0.7869, 100.2808, "WIB", 0],
-  ["PKU", "Sultan Syarif Kasim II", "Pekanbaru", "Riau", 0.4608, 101.4447, "WIB", 0],
-  ["BTH", "Hang Nadim", "Batam", "Kepulauan Riau", 1.1210, 104.1190, "WIB", 1],
-  ["TNJ", "Raja Haji Fisabilillah", "Tanjungpinang", "Kepulauan Riau", 0.9227, 104.5321, "WIB", 0],
-  ["NTX", "Raden Sadjad", "Natuna", "Kepulauan Riau", 3.9087, 108.3880, "WIB", 0],
-  ["DJB", "Sultan Thaha", "Jambi", "Jambi", -1.6380, 103.6444, "WIB", 0],
-  ["PLM", "Sultan Mahmud Badaruddin II", "Palembang", "Sumatera Selatan", -2.8983, 104.6997, "WIB", 1],
-  ["BKS", "Fatmawati Soekarno", "Bengkulu", "Bengkulu", -3.8637, 102.3390, "WIB", 0],
-  ["PGK", "Depati Amir", "Pangkalpinang", "Kep. Bangka Belitung", -2.1622, 106.1390, "WIB", 0],
-  ["TJQ", "H.A.S. Hanandjoeddin", "Tanjung Pandan", "Kep. Bangka Belitung", -2.7457, 107.7549, "WIB", 0],
-  ["TKG", "Radin Inten II", "Bandar Lampung", "Lampung", -5.2406, 105.1757, "WIB", 0],
-  ["CGK", "Soekarno–Hatta", "Tangerang", "Banten", -6.1256, 106.6559, "WIB", 1],
-  ["HLP", "Halim Perdanakusuma", "Jakarta Timur", "DKI Jakarta", -6.2666, 106.8910, "WIB", 0],
-  ["BDO", "Husein Sastranegara", "Bandung", "Jawa Barat", -6.9006, 107.5763, "WIB", 0],
-  ["KJT", "Kertajati", "Majalengka", "Jawa Barat", -6.6489, 108.1667, "WIB", 0],
-  ["SRG", "Jenderal Ahmad Yani", "Semarang", "Jawa Tengah", -6.9727, 110.3750, "WIB", 0],
-  ["SOC", "Adi Soemarmo", "Surakarta", "Jawa Tengah", -7.5161, 110.7569, "WIB", 0],
-  ["YIA", "Yogyakarta International", "Kulon Progo", "DI Yogyakarta", -7.9075, 110.0569, "WIB", 1],
-  ["SUB", "Juanda", "Surabaya", "Jawa Timur", -7.3798, 112.7868, "WIB", 1],
-  ["MLG", "Abdul Rachman Saleh", "Malang", "Jawa Timur", -7.9266, 112.7145, "WIB", 0],
-  ["BWX", "Banyuwangi", "Banyuwangi", "Jawa Timur", -8.3102, 114.3401, "WIB", 0],
-  ["PNK", "Supadio", "Pontianak", "Kalimantan Barat", -0.1507, 109.4039, "WIB", 1],
-  ["KTG", "Rahadi Oesman", "Ketapang", "Kalimantan Barat", -1.8166, 109.9633, "WIB", 0],
-  ["PKY", "Tjilik Riwut", "Palangka Raya", "Kalimantan Tengah", -2.2251, 113.9426, "WIB", 0],
+  ["BTJ", "WITT", "Sultan Iskandar Muda", "Banda Aceh", "Aceh", 5.5229, 95.4206, "WIB", 0],
+  ["KNO", "WIMM", "Kualanamu", "Medan", "Sumatera Utara", 3.6422, 98.8853, "WIB", 1],
+  ["DTB", "WIMN", "Raja Sisingamangaraja XII (Silangit)", "Tapanuli Utara", "Sumatera Utara", 2.2597, 98.9919, "WIB", 0],
+  ["GNS", "WIMB", "Binaka", "Gunungsitoli", "Sumatera Utara", 1.1663, 97.7047, "WIB", 0],
+  ["PDG", "WIEE", "Minangkabau", "Padang", "Sumatera Barat", -0.7869, 100.2808, "WIB", 0],
+  ["PKU", "WIBB", "Sultan Syarif Kasim II", "Pekanbaru", "Riau", 0.4608, 101.4447, "WIB", 0],
+  ["BTH", "WIDD", "Hang Nadim", "Batam", "Kepulauan Riau", 1.1210, 104.1190, "WIB", 1],
+  ["TNJ", "WIDN", "Raja Haji Fisabilillah", "Tanjungpinang", "Kepulauan Riau", 0.9227, 104.5321, "WIB", 0],
+  ["NTX", "WION", "Raden Sadjad", "Natuna", "Kepulauan Riau", 3.9087, 108.3880, "WIB", 0],
+  ["DJB", "WIJJ", "Sultan Thaha", "Jambi", "Jambi", -1.6380, 103.6444, "WIB", 0],
+  ["PLM", "WIPP", "Sultan Mahmud Badaruddin II", "Palembang", "Sumatera Selatan", -2.8983, 104.6997, "WIB", 1],
+  ["BKS", "WIGG", "Fatmawati Soekarno", "Bengkulu", "Bengkulu", -3.8637, 102.3390, "WIB", 0],
+  ["PGK", "WIPK", "Depati Amir", "Pangkalpinang", "Kep. Bangka Belitung", -2.1622, 106.1390, "WIB", 0],
+  ["TJQ", "WIOD", "H.A.S. Hanandjoeddin", "Tanjung Pandan", "Kep. Bangka Belitung", -2.7457, 107.7549, "WIB", 0],
+  ["TKG", "WILL", "Radin Inten II", "Bandar Lampung", "Lampung", -5.2406, 105.1757, "WIB", 0],
+  ["CGK", "WIII", "Soekarno–Hatta", "Tangerang", "Banten", -6.1256, 106.6559, "WIB", 1],
+  ["HLP", "WIHH", "Halim Perdanakusuma", "Jakarta Timur", "DKI Jakarta", -6.2666, 106.8910, "WIB", 0],
+  ["BDO", "WICC", "Husein Sastranegara", "Bandung", "Jawa Barat", -6.9006, 107.5763, "WIB", 0],
+  ["KJT", "WICA", "Kertajati", "Majalengka", "Jawa Barat", -6.6489, 108.1667, "WIB", 0],
+  ["SRG", "WAHS", "Jenderal Ahmad Yani", "Semarang", "Jawa Tengah", -6.9727, 110.3750, "WIB", 0],
+  ["SOC", "WAHQ", "Adi Soemarmo", "Surakarta", "Jawa Tengah", -7.5161, 110.7569, "WIB", 0],
+  ["YIA", "WAHI", "Yogyakarta International", "Kulon Progo", "DI Yogyakarta", -7.9075, 110.0569, "WIB", 1],
+  ["SUB", "WARR", "Juanda", "Surabaya", "Jawa Timur", -7.3798, 112.7868, "WIB", 1],
+  ["MLG", "WARA", "Abdul Rachman Saleh", "Malang", "Jawa Timur", -7.9266, 112.7145, "WIB", 0],
+  ["BWX", "WADY", "Banyuwangi", "Banyuwangi", "Jawa Timur", -8.3102, 114.3401, "WIB", 0],
+  ["PNK", "WIOO", "Supadio", "Pontianak", "Kalimantan Barat", -0.1507, 109.4039, "WIB", 1],
+  ["KTG", "WIOK", "Rahadi Oesman", "Ketapang", "Kalimantan Barat", -1.8166, 109.9633, "WIB", 0],
+  ["PKY", "WAGG", "Tjilik Riwut", "Palangka Raya", "Kalimantan Tengah", -2.2251, 113.9426, "WIB", 0],
 
-  ["DPS", "I Gusti Ngurah Rai", "Denpasar", "Bali", -8.7482, 115.1672, "WITA", 1],
-  ["LOP", "Zainuddin Abdul Madjid", "Lombok Tengah", "Nusa Tenggara Barat", -8.7573, 116.2767, "WITA", 0],
-  ["BMU", "Sultan Muhammad Salahuddin", "Bima", "Nusa Tenggara Barat", -8.5397, 118.6873, "WITA", 0],
-  ["LBJ", "Komodo", "Labuan Bajo", "Nusa Tenggara Timur", -8.4867, 119.8890, "WITA", 0],
-  ["TMC", "Lede Kalumbang", "Tambolaka", "Nusa Tenggara Timur", -9.4097, 119.2440, "WITA", 0],
-  ["WGP", "Umbu Mehang Kunda", "Waingapu", "Nusa Tenggara Timur", -9.6692, 120.3020, "WITA", 0],
-  ["ENE", "H. Hasan Aroeboesman", "Ende", "Nusa Tenggara Timur", -8.8493, 121.6606, "WITA", 0],
-  ["MOF", "Frans Seda", "Maumere", "Nusa Tenggara Timur", -8.6406, 122.2369, "WITA", 0],
-  ["KOE", "El Tari", "Kupang", "Nusa Tenggara Timur", -10.1716, 123.6711, "WITA", 1],
-  ["BDJ", "Syamsudin Noor", "Banjarmasin", "Kalimantan Selatan", -3.4424, 114.7626, "WITA", 0],
-  ["BPN", "Sultan Aji Muhammad Sulaiman Sepinggan", "Balikpapan", "Kalimantan Timur", -1.2683, 116.8945, "WITA", 1],
-  ["AAP", "Aji Pangeran Tumenggung Pranoto", "Samarinda", "Kalimantan Timur", -0.3745, 117.2557, "WITA", 0],
-  ["BEJ", "Kalimarau", "Berau", "Kalimantan Timur", 2.1555, 117.4322, "WITA", 0],
-  ["TRK", "Juwata", "Tarakan", "Kalimantan Utara", 3.3267, 117.5656, "WITA", 0],
-  ["UPG", "Sultan Hasanuddin", "Makassar", "Sulawesi Selatan", -5.0617, 119.5540, "WITA", 1],
-  ["MJU", "Tampa Padang", "Mamuju", "Sulawesi Barat", -2.5833, 119.0333, "WITA", 0],
-  ["PLW", "Mutiara SIS Al-Jufrie", "Palu", "Sulawesi Tengah", -0.9185, 119.9096, "WITA", 0],
-  ["LUW", "Syukuran Aminuddin Amir", "Luwuk", "Sulawesi Tengah", -1.0389, 122.7720, "WITA", 0],
-  ["GTO", "Djalaluddin", "Gorontalo", "Gorontalo", 0.6372, 122.8497, "WITA", 0],
-  ["MDC", "Sam Ratulangi", "Manado", "Sulawesi Utara", 1.5493, 124.9259, "WITA", 1],
-  ["KDI", "Haluoleo", "Kendari", "Sulawesi Tenggara", -4.0816, 122.4182, "WITA", 0],
-  ["BUW", "Betoambari", "Baubau", "Sulawesi Tenggara", -5.4869, 122.5690, "WITA", 0],
+  ["DPS", "WADD", "I Gusti Ngurah Rai", "Denpasar", "Bali", -8.7482, 115.1672, "WITA", 1],
+  ["LOP", "WADL", "Zainuddin Abdul Madjid", "Lombok Tengah", "Nusa Tenggara Barat", -8.7573, 116.2767, "WITA", 0],
+  ["BMU", "WADB", "Sultan Muhammad Salahuddin", "Bima", "Nusa Tenggara Barat", -8.5397, 118.6873, "WITA", 0],
+  ["LBJ", "WATO", "Komodo", "Labuan Bajo", "Nusa Tenggara Timur", -8.4867, 119.8890, "WITA", 0],
+  ["TMC", "WATK", "Lede Kalumbang", "Tambolaka", "Nusa Tenggara Timur", -9.4097, 119.2440, "WITA", 0],
+  ["WGP", "WATU", "Umbu Mehang Kunda", "Waingapu", "Nusa Tenggara Timur", -9.6692, 120.3020, "WITA", 0],
+  ["ENE", "WATE", "H. Hasan Aroeboesman", "Ende", "Nusa Tenggara Timur", -8.8493, 121.6606, "WITA", 0],
+  ["MOF", "WATC", "Frans Seda", "Maumere", "Nusa Tenggara Timur", -8.6406, 122.2369, "WITA", 0],
+  ["KOE", "WATT", "El Tari", "Kupang", "Nusa Tenggara Timur", -10.1716, 123.6711, "WITA", 1],
+  ["BDJ", "WAOO", "Syamsudin Noor", "Banjarmasin", "Kalimantan Selatan", -3.4424, 114.7626, "WITA", 0],
+  ["BPN", "WALL", "Sultan Aji Muhammad Sulaiman Sepinggan", "Balikpapan", "Kalimantan Timur", -1.2683, 116.8945, "WITA", 1],
+  ["AAP", "WALS", "Aji Pangeran Tumenggung Pranoto", "Samarinda", "Kalimantan Timur", -0.3745, 117.2557, "WITA", 0],
+  ["BEJ", "WAQT", "Kalimarau", "Berau", "Kalimantan Timur", 2.1555, 117.4322, "WITA", 0],
+  ["TRK", "WAQQ", "Juwata", "Tarakan", "Kalimantan Utara", 3.3267, 117.5656, "WITA", 0],
+  ["UPG", "WAAA", "Sultan Hasanuddin", "Makassar", "Sulawesi Selatan", -5.0617, 119.5540, "WITA", 1],
+  ["MJU", "WAWJ", "Tampa Padang", "Mamuju", "Sulawesi Barat", -2.5833, 119.0333, "WITA", 0],
+  ["PLW", "WAFF", "Mutiara SIS Al-Jufrie", "Palu", "Sulawesi Tengah", -0.9185, 119.9096, "WITA", 0],
+  ["LUW", "WAFW", "Syukuran Aminuddin Amir", "Luwuk", "Sulawesi Tengah", -1.0389, 122.7720, "WITA", 0],
+  ["GTO", "WAMG", "Djalaluddin", "Gorontalo", "Gorontalo", 0.6372, 122.8497, "WITA", 0],
+  ["MDC", "WAMM", "Sam Ratulangi", "Manado", "Sulawesi Utara", 1.5493, 124.9259, "WITA", 1],
+  ["KDI", "WAWW", "Haluoleo", "Kendari", "Sulawesi Tenggara", -4.0816, 122.4182, "WITA", 0],
+  ["BUW", "WAWB", "Betoambari", "Baubau", "Sulawesi Tenggara", -5.4869, 122.5690, "WITA", 0],
 
-  ["TTE", "Sultan Babullah", "Ternate", "Maluku Utara", 0.8314, 127.3810, "WIT", 0],
-  ["AMQ", "Pattimura", "Ambon", "Maluku", -3.7103, 128.0891, "WIT", 1],
-  ["LUV", "Karel Sadsuitubun", "Langgur", "Maluku", -5.7605, 132.7590, "WIT", 0],
-  ["SXK", "Mathilda Batlayeri", "Saumlaki", "Maluku", -7.9886, 131.3060, "WIT", 0],
-  ["SOQ", "Domine Eduard Osok", "Sorong", "Papua Barat Daya", -0.8945, 131.2879, "WIT", 1],
-  ["RJM", "Marinda", "Waisai", "Papua Barat Daya", -0.4219, 130.7731, "WIT", 0],
-  ["MKW", "Rendani", "Manokwari", "Papua Barat", -0.8918, 134.0490, "WIT", 0],
-  ["FKQ", "Torea", "Fakfak", "Papua Barat", -2.9202, 132.2670, "WIT", 0],
-  ["KNG", "Utarom", "Kaimana", "Papua Barat", -3.6445, 133.6956, "WIT", 0],
-  ["BIK", "Frans Kaisiepo", "Biak", "Papua", -1.1900, 136.1078, "WIT", 0],
-  ["DJJ", "Dortheys Hiyo Eluay (Sentani)", "Jayapura", "Papua", -2.5770, 140.5161, "WIT", 1],
-  ["NBX", "Douw Aturure", "Nabire", "Papua Tengah", -3.3682, 135.4960, "WIT", 0],
-  ["TIM", "Mozes Kilangin", "Timika", "Papua Tengah", -4.5283, 136.8873, "WIT", 0],
-  ["WMX", "Wamena", "Wamena", "Papua Pegunungan", -4.1025, 138.9572, "WIT", 0],
-  ["MKQ", "Mopah", "Merauke", "Papua Selatan", -8.5203, 140.4180, "WIT", 0],
-].map(([code, name, city, prov, lat, lon, zone, hub]) => ({ code, name, city, prov, lat, lon, zone, hub: !!hub }));
+  ["TTE", "WAEE", "Sultan Babullah", "Ternate", "Maluku Utara", 0.8314, 127.3810, "WIT", 0],
+  ["AMQ", "WAPP", "Pattimura", "Ambon", "Maluku", -3.7103, 128.0891, "WIT", 1],
+  ["LUV", "WAPL", "Karel Sadsuitubun", "Langgur", "Maluku", -5.7605, 132.7590, "WIT", 0],
+  ["SXK", "WAPI", "Mathilda Batlayeri", "Saumlaki", "Maluku", -7.9886, 131.3060, "WIT", 0],
+  ["SOQ", "WAXX", "Domine Eduard Osok", "Sorong", "Papua Barat Daya", -0.8945, 131.2879, "WIT", 1],
+  ["RJM", "WASN", "Marinda", "Waisai", "Papua Barat Daya", -0.4219, 130.7731, "WIT", 0],
+  ["MKW", "WAUU", "Rendani", "Manokwari", "Papua Barat", -0.8918, 134.0490, "WIT", 0],
+  ["FKQ", "WASF", "Torea", "Fakfak", "Papua Barat", -2.9202, 132.2670, "WIT", 0],
+  ["KNG", "WASK", "Utarom", "Kaimana", "Papua Barat", -3.6445, 133.6956, "WIT", 0],
+  ["BIK", "WABB", "Frans Kaisiepo", "Biak", "Papua", -1.1900, 136.1078, "WIT", 0],
+  ["DJJ", "WAJJ", "Dortheys Hiyo Eluay (Sentani)", "Jayapura", "Papua", -2.5770, 140.5161, "WIT", 1],
+  ["NBX", "WABI", "Douw Aturure", "Nabire", "Papua Tengah", -3.3682, 135.4960, "WIT", 0],
+  ["TIM", "WAYY", "Mozes Kilangin", "Timika", "Papua Tengah", -4.5283, 136.8873, "WIT", 0],
+  ["WMX", "WAVV", "Wamena", "Wamena", "Papua Pegunungan", -4.1025, 138.9572, "WIT", 0],
+  ["MKQ", "WAKK", "Mopah", "Merauke", "Papua Selatan", -8.5203, 140.4180, "WIT", 0],
+].map(([iata, icao, name, city, prov, lat, lon, zone, hub]) => ({ iata, icao, name, city, prov, lat, lon, zone, hub: !!hub }));
+
+// [nama, lon, lat, ketinggian (m), aktif berasap]
+const MOUNTAINS = [
+  ["Gunung Leuser", 97.20, 3.75, 3466, 0],
+  ["Gunung Sinabung", 98.39, 3.17, 2460, 1],
+  ["Gunung Kerinci", 101.26, -1.70, 3805, 0],
+  ["Gunung Dempo", 103.13, -4.03, 3173, 0],
+  ["Gunung Anak Krakatau", 105.42, -6.10, 157, 1],
+  ["Gunung Gede", 106.98, -6.78, 2958, 0],
+  ["Gunung Ciremai", 108.40, -6.89, 3078, 0],
+  ["Gunung Slamet", 109.21, -7.24, 3428, 0],
+  ["Gunung Merapi", 110.44, -7.54, 2910, 1],
+  ["Gunung Semeru", 112.92, -8.11, 3676, 1],
+  ["Gunung Raung", 114.04, -8.12, 3332, 0],
+  ["Gunung Agung", 115.51, -8.34, 3031, 0],
+  ["Gunung Rinjani", 116.46, -8.41, 3726, 0],
+  ["Gunung Tambora", 117.99, -8.25, 2850, 0],
+  ["Gunung Kelimutu", 121.82, -8.77, 1639, 0],
+  ["Bukit Raya", 112.68, -0.68, 2278, 0],
+  ["Gunung Latimojong", 120.03, -3.38, 3478, 0],
+  ["Gunung Klabat", 125.03, 1.47, 1995, 0],
+  ["Gunung Gamalama", 127.33, 0.80, 1715, 1],
+  ["Gunung Binaiya", 129.46, -3.18, 3027, 0],
+  ["Pegunungan Arfak", 133.90, -1.10, 2955, 0],
+  ["Puncak Jaya", 137.16, -4.08, 4884, 0],
+  ["Puncak Trikora", 138.68, -4.27, 4750, 0],
+  ["Puncak Mandala", 140.30, -4.70, 4640, 0],
+];
+
+// [nama, [[lon, lat], ...] dari muara ke hulu]
+const RIVERS = [
+  ["Sungai Kapuas", [[109.25,-0.05],[109.7,0.0],[110.2,0.1],[110.6,0.12],[111.1,-0.05],[111.5,0.07],[112.1,0.5],[112.6,0.8],[112.95,0.85]]],
+  ["Sungai Mahakam", [[117.35,-0.6],[117.15,-0.5],[116.99,-0.42],[116.58,-0.27],[116.2,-0.3],[115.83,-0.23],[115.6,0.03],[115.15,0.6]]],
+  ["Sungai Barito", [[114.55,-3.3],[114.76,-2.98],[114.85,-2.3],[114.9,-1.6],[114.88,-0.95],[114.57,-0.6]]],
+  ["Sungai Kahayan", [[114.12,-3.25],[114.25,-2.75],[113.92,-2.21],[113.9,-1.6],[113.87,-1.1]]],
+  ["Sungai Musi", [[104.9,-2.35],[104.76,-2.98],[104.3,-2.9],[103.9,-2.88],[103.4,-3.0],[102.86,-3.3]]],
+  ["Sungai Batanghari", [[104.3,-1.05],[103.95,-1.4],[103.6,-1.6],[103.1,-1.7],[102.6,-1.55],[102.12,-1.47],[101.6,-1.05]]],
+  ["Bengawan Solo", [[112.55,-6.92],[112.4,-7.1],[111.88,-7.15],[111.45,-7.4],[110.83,-7.57],[110.92,-7.8]]],
+  ["Sungai Brantas", [[112.7,-7.32],[112.43,-7.47],[112.1,-7.6],[112.01,-7.82],[112.2,-8.1],[112.63,-7.97]]],
+  ["Sungai Mamberamo", [[137.88,-1.5],[137.98,-2.0],[138.1,-2.4],[138.3,-2.8],[138.6,-3.1],[139.0,-3.3]]],
+  ["Sungai Digul", [[138.75,-7.05],[139.3,-6.6],[139.9,-6.3],[140.3,-6.1],[140.6,-5.5]]],
+];
+
+const SEAS = [
+  ["Samudra Hindia", 101.5, -9.0], ["Samudra Pasifik", 133.0, 3.5], ["Laut Jawa", 111.5, -5.3],
+  ["Laut Natuna Utara", 107.5, 2.2], ["Laut Sulawesi", 121.5, 3.0], ["Laut Banda", 127.0, -5.8],
+  ["Laut Flores", 120.5, -7.3], ["Laut Arafura", 136.5, -9.0], ["Selat Makassar", 118.3, -2.0],
+  ["Laut Maluku", 126.0, -0.6], ["Selat Malaka", 99.8, 3.2],
+];
 
 const HARI = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
 const BULAN = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
 const pad = n => String(n).padStart(2, "0");
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 // Indonesia has no daylight saving, so a fixed UTC offset is exact.
 function zoneNow(zone, now = Date.now()) {
   const d = new Date(now + ZONES[zone].offset * 3600e3);
-  const h = d.getUTCHours(), m = d.getUTCMinutes(), s = d.getUTCSeconds();
+  const h = d.getUTCHours();
   return {
-    h, hm: `${pad(h)}:${pad(m)}`, sec: pad(s),
+    h, hm: `${pad(h)}:${pad(d.getUTCMinutes())}`, sec: pad(d.getUTCSeconds()),
     date: `${HARI[d.getUTCDay()]}, ${d.getUTCDate()} ${BULAN[d.getUTCMonth()]} ${d.getUTCFullYear()}`,
     shortDate: `${d.getUTCDate()} ${BULAN[d.getUTCMonth()]}`,
     dayKey: d.getUTCFullYear() * 400 + d.getUTCMonth() * 32 + d.getUTCDate(),
@@ -403,152 +554,581 @@ function partOfDay(h) {
 function diffText(zone) {
   const mine = -new Date().getTimezoneOffset() / 60;
   const diff = ZONES[zone].offset - mine;
-  if (diff === 0) return "Sama dengan waktu perangkat Anda";
+  if (diff === 0) return "Sama dengan jam perangkat Anda";
   const abs = Math.abs(diff);
   const hrs = Number.isInteger(abs) ? `${abs} jam` : `${Math.floor(abs)} jam ${Math.round((abs % 1) * 60)} menit`;
-  return `${hrs} ${diff > 0 ? "lebih cepat" : "lebih lambat"} dari waktu perangkat Anda`;
+  return `${hrs} ${diff > 0 ? "lebih cepat" : "lebih lambat"} dari jam perangkat Anda`;
 }
-const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
-/* ---------- Map ---------- */
-const rootStyle = getComputedStyle(document.documentElement); // live object, follows theme changes
+/* =====================  3D SCENE  ===================== */
+const board = document.getElementById("board");
+const canvas = document.getElementById("scene");
+const labelsEl = document.getElementById("labels");
+const tipEl = document.getElementById("tip");
+const rootStyle = getComputedStyle(document.documentElement); // live: follows theme changes
 const tok = name => rootStyle.getPropertyValue(name).trim();
-const INDONESIA = L.latLngBounds([-11.2, 94.6], [6.4, 141.2]);
+const col = name => new THREE.Color(tok(name));
+const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-const map = L.map("map", {
-  zoomSnap: 0.25, minZoom: 3.5, maxZoom: 11, worldCopyJump: false,
-  maxBounds: INDONESIA.pad(0.6), attributionControl: true,
-});
-map.attributionControl.setPrefix(false);
-map.attributionControl.addAttribution("Batas provinsi © BAKOSURTANAL");
-map.fitBounds(INDONESIA, { padding: [8, 8] });
+const CX = 118, CY = -2.5;        // map centre (lon, lat)
+const LAND_H = 0.32;              // island thickness above the sea
+const toX = lon => lon - CX;
+const toZ = lat => -(lat - CY);
+const rand = (() => { let s = 20260807; return () => ((s = Math.imul(s ^ (s >>> 15), 2246822507) + 0x9e3779b9 | 0) >>> 0) / 4294967296; })();
 
-let provLayer;
-function provStyle(f) {
-  const color = tok("--" + ZONES[f.properties.z].cls);
-  return { color: tok("--land-stroke"), weight: 0.8, fillColor: color, fillOpacity: 0.55 };
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+} catch (e) {
+  board.insertAdjacentHTML("beforeend", '<div class="nogl">Peta 3D butuh WebGL. Aktifkan akselerasi grafis di browser Anda, daftar bandara di samping tetap berfungsi.</div>');
 }
-if (PROVINCES) {
-  provLayer = L.geoJSON(PROVINCES, {
-    style: provStyle,
-    onEachFeature(f, layer) {
-      const z = f.properties.z;
-      layer.bindTooltip(`<strong>${esc(f.properties.n)}</strong> · ${z} (UTC+${ZONES[z].offset})`, { sticky: true, className: "prov-tip", direction: "top", offset: [0, -6] });
-      layer.on({
-        mouseover: e => e.target.setStyle({ fillOpacity: 0.8 }),
-        mouseout: e => provLayer.resetStyle(e.target),
-      });
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 400);
+let controls;
+const mats = {};          // materials recoloured on theme change
+const pickables = [];     // meshes for hover / click
+const pinObjs = new Map();
+const smokePuffs = [];
+const clouds = [];
+let seaMat, sunLight, hemiLight;
+
+// 3-step toon ramp for the cartoon look
+const toonRamp = (() => {
+  const data = new Uint8Array([90, 90, 90, 255, 175, 175, 175, 255, 255, 255, 255, 255]);
+  const t = new THREE.DataTexture(data, 3, 1, THREE.RGBAFormat);
+  t.minFilter = t.magFilter = THREE.NearestFilter; t.generateMipmaps = false; t.needsUpdate = true;
+  return t;
+})();
+// faceted low-poly look: split vertices so every face gets its own normal
+const facet = g => { const n = g.index ? g.toNonIndexed() : g; n.computeVertexNormals(); return n; };
+const toon = (color, extra = {}) => new THREE.MeshToonMaterial(Object.assign({ color, gradientMap: toonRamp }, extra));
+
+function provinceShapes(geom) {
+  return geom.coordinates.map(poly => {
+    const shape = new THREE.Shape(poly[0].map(([x, y]) => new THREE.Vector2(toX(x), y - CY)));
+    for (let i = 1; i < poly.length; i++) shape.holes.push(new THREE.Path(poly[i].map(([x, y]) => new THREE.Vector2(toX(x), y - CY))));
+    return shape;
+  });
+}
+function pointInRing(x, y, ring) {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i], [xj, yj] = ring[j];
+    if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+function onLand(lon, lat) {
+  return PROVINCES.features.some(f => f.geometry.coordinates.some(p => pointInRing(lon, lat, p[0]) && !p.slice(1).some(h => pointInRing(lon, lat, h))));
+}
+
+function buildScene() {
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+  // Lights
+  hemiLight = new THREE.HemisphereLight(0xffffff, 0x88aacc, 0.75);
+  scene.add(hemiLight);
+  sunLight = new THREE.DirectionalLight(0xffffff, 0.75);
+  sunLight.position.set(-14, 30, 18);
+  sunLight.castShadow = true;
+  sunLight.shadow.mapSize.set(2048, 2048);
+  Object.assign(sunLight.shadow.camera, { left: -30, right: 30, top: 16, bottom: -16, near: 1, far: 80 });
+  sunLight.shadow.bias = -0.0008;
+  scene.add(sunLight);
+
+  // Sea: animated cartoon water
+  seaMat = new THREE.ShaderMaterial({
+    uniforms: {
+      uTime: { value: 0 }, uSea: { value: col("--sea") }, uFoam: { value: col("--sea-foam") },
+      uDeep: { value: col("--sea-deep") }, uFog: { value: col("--sky") }, uFogNear: { value: 45 }, uFogFar: { value: 110 },
     },
-  }).addTo(map);
-}
-
-// Reference meridians: UTC+7 = 105°E, UTC+8 = 120°E, UTC+9 = 135°E.
-const meridianLayer = L.layerGroup().addTo(map);
-function drawMeridians() {
-  meridianLayer.clearLayers();
-  [[105, "WIB"], [120, "WITA"], [135, "WIT"]].forEach(([lon, z]) => {
-    L.polyline([[7.5, lon], [-11.8, lon]], { color: tok("--" + ZONES[z].cls), weight: 1.2, dashArray: "4 5", opacity: 0.9, interactive: false }).addTo(meridianLayer);
-    L.marker([6.9, lon], { interactive: false, keyboard: false,
-      icon: L.divIcon({ className: "meridian-label", html: `${lon}° BT`, iconSize: null }) }).addTo(meridianLayer);
+    vertexShader: `
+      varying vec2 vP; varying float vDist;
+      void main() {
+        vec4 wp = modelMatrix * vec4(position, 1.0);
+        vP = wp.xz;
+        vec4 mv = viewMatrix * wp;
+        vDist = -mv.z;
+        gl_Position = projectionMatrix * mv;
+      }`,
+    fragmentShader: `
+      uniform float uTime; uniform vec3 uSea; uniform vec3 uFoam; uniform vec3 uDeep; uniform vec3 uFog; uniform float uFogNear; uniform float uFogFar;
+      varying vec2 vP; varying float vDist;
+      void main() {
+        float r = length(vP * vec2(0.035, 0.07));
+        vec3 c = mix(uSea, uDeep, smoothstep(0.6, 1.6, r));
+        float w = sin(vP.x * 0.9 + sin(vP.y * 0.7 + uTime * 0.5) * 1.6 + uTime * 0.6)
+                * sin(vP.y * 1.1 - uTime * 0.4 + sin(vP.x * 0.5) * 1.3);
+        float foam = smoothstep(0.86, 0.9, w) * (1.0 - smoothstep(0.9, 0.97, w));
+        c = mix(c, uFoam, foam * 0.45);
+        float f = smoothstep(uFogNear, uFogFar, vDist);
+        gl_FragColor = vec4(mix(c, uFog, f), 1.0);
+      }`,
   });
-}
-drawMeridians();
+  const sea = new THREE.Mesh(new THREE.PlaneGeometry(400, 400), seaMat);
+  sea.rotation.x = -Math.PI / 2;
+  scene.add(sea);
+  // soft shadow catcher on the sea so islands sit in the water
+  const shadowSea = new THREE.Mesh(new THREE.PlaneGeometry(120, 60), new THREE.ShadowMaterial({ opacity: 0.18 }));
+  shadowSea.rotation.x = -Math.PI / 2; shadowSea.position.y = 0.005; shadowSea.receiveShadow = true;
+  scene.add(shadowSea);
 
-const markers = new Map();
+  // Islands, coloured by time zone
+  mats.cliff = toon(col("--cliff"));
+  mats.zone = {};
+  Object.keys(ZONES).forEach(z => { mats.zone[z] = toon(col("--" + ZONES[z].cls)); });
+  mats.border = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.55 });
+  PROVINCES.features.forEach(f => {
+    const geo = new THREE.ExtrudeGeometry(provinceShapes(f.geometry), {
+      depth: LAND_H, bevelEnabled: true, bevelThickness: 0.06, bevelSize: 0.05, bevelSegments: 1, curveSegments: 1,
+    });
+    geo.rotateX(-Math.PI / 2);
+    const mesh = new THREE.Mesh(geo, [mats.zone[f.properties.z], mats.cliff]);
+    mesh.receiveShadow = true; mesh.castShadow = true;
+    mesh.userData = { kind: "prov", name: f.properties.n, zone: f.properties.z };
+    scene.add(mesh); pickables.push(mesh);
+    // province outline on top
+    f.geometry.coordinates.forEach(poly => {
+      const pts = poly[0].map(([x, y]) => new THREE.Vector3(toX(x), LAND_H + 0.065, toZ(y)));
+      if (pts.length > 8) scene.add(new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(pts), mats.border));
+    });
+  });
+
+  // Mountains (low-poly cones with snow caps), active volcanoes puff smoke
+  mats.rock = toon(col("--rock"));
+  mats.snow = toon(col("--snow"));
+  mats.smoke = toon(0xffffff, { transparent: true, opacity: 0.8 });
+  MOUNTAINS.forEach(([name, lon, lat, elev, active]) => {
+    const h = 0.16 + (elev / 4884) * 0.85, r = 0.15 + h * 0.26;
+    const base = onLand(lon, lat) ? LAND_H : 0;
+    const g = new THREE.Group();
+    g.position.set(toX(lon), base, toZ(lat));
+    const cone = new THREE.Mesh(facet(new THREE.ConeGeometry(r, h, 7, 1)), mats.rock);
+    cone.position.y = h / 2; cone.castShadow = true; cone.rotation.y = rand() * Math.PI;
+    cone.userData = { kind: "mount", name, elev };
+    g.add(cone); pickables.push(cone);
+    if (!active && elev > 2400) {
+      const capH = h * 0.32;
+      const cap = new THREE.Mesh(facet(new THREE.ConeGeometry(r * 0.34, capH, 7, 1)), mats.snow);
+      cap.position.y = h - capH / 2 + 0.005; cap.rotation.y = cone.rotation.y;
+      g.add(cap);
+    }
+    if (active) {
+      for (let i = 0; i < 3; i++) {
+        const p = new THREE.Mesh(new THREE.IcosahedronGeometry(0.09, 0), mats.smoke);
+        p.userData = { phase: i / 3, top: h };
+        g.add(p); smokePuffs.push(p);
+      }
+    }
+    scene.add(g);
+  });
+
+  // Rivers: flat blue tubes winding across the land
+  mats.river = toon(col("--river"));
+  RIVERS.forEach(([name, pts]) => {
+    const curve = new THREE.CatmullRomCurve3(pts.map(([lon, lat]) => new THREE.Vector3(toX(lon), LAND_H + 0.075, toZ(lat))), false, "catmullrom", 0.4);
+    const geo = new THREE.TubeGeometry(curve, pts.length * 10, 0.065, 5, false);
+    geo.scale(1, 0.35, 1);
+    geo.translate(0, (LAND_H + 0.075) * 0.65, 0); // undo the y-scale shift
+    const mesh = new THREE.Mesh(geo, mats.river);
+    mesh.userData = { kind: "river", name };
+    scene.add(mesh); pickables.push(mesh);
+  });
+
+  // Forests: instanced round-canopy trees scattered on the larger islands
+  const FOREST = {
+    "Kalimantan Barat": 70, "Kalimantan Tengah": 80, "Kalimantan Timur & Utara": 95, "Kalimantan Selatan": 22,
+    "Papua": 170, "Papua Barat": 55, "Riau & Kep. Riau": 35, "Jambi": 25, "Aceh": 32, "Sumatera Utara": 24,
+    "Sumatera Barat": 16, "Sumatera Selatan": 22, "Bengkulu": 10, "Lampung": 8, "Sulawesi Tengah": 40,
+    "Sulawesi Selatan & Barat": 22, "Sulawesi Tenggara": 14, "Gorontalo": 6, "Sulawesi Utara": 6,
+    "Maluku": 26, "Maluku Utara": 22, "Jawa Barat": 8, "Jawa Tengah": 6, "Jawa Timur": 8, "Nusa Tenggara Timur": 8, "Bali": 2,
+  };
+  const keepClear = [
+    ...AIRPORTS.map(a => [a.lon, a.lat, 0.3]),
+    ...MOUNTAINS.map(m => [m[1], m[2], 0.35]),
+  ];
+  const spots = [];
+  PROVINCES.features.forEach(f => {
+    const want = FOREST[f.properties.n] || 0;
+    if (!want) return;
+    const rings = f.geometry.coordinates;
+    let minX = 1e9, minY = 1e9, maxX = -1e9, maxY = -1e9;
+    rings.forEach(p => p[0].forEach(([x, y]) => { minX = Math.min(minX, x); maxX = Math.max(maxX, x); minY = Math.min(minY, y); maxY = Math.max(maxY, y); }));
+    let placed = 0, tries = 0;
+    while (placed < want && tries < want * 60) {
+      tries++;
+      const x = minX + rand() * (maxX - minX), y = minY + rand() * (maxY - minY);
+      if (!rings.some(p => pointInRing(x, y, p[0]))) continue;
+      if (keepClear.some(([cx, cy, r]) => Math.hypot(cx - x, cy - y) < r)) continue;
+      if (spots.some(([sx, sy]) => Math.hypot(sx - x, sy - y) < 0.16)) continue;
+      spots.push([x, y]); placed++;
+    }
+  });
+  mats.canopy = toon(0xffffff);
+  mats.trunk = toon(col("--trunk"));
+  const canopy = new THREE.InstancedMesh(facet(new THREE.IcosahedronGeometry(0.11, 0)), mats.canopy, spots.length);
+  const trunk = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.022, 0.03, 0.12, 5), mats.trunk, spots.length);
+  canopy.castShadow = true;
+  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3();
+  const treeCols = [col("--tree"), col("--tree-2")];
+  spots.forEach(([x, y], i) => {
+    const k = 0.8 + rand() * 0.6;
+    p.set(toX(x), LAND_H + 0.06 + 0.06 * k, toZ(y)); s.set(1, 1, 1);
+    trunk.setMatrixAt(i, m4.compose(p, q.identity(), s));
+    p.y = LAND_H + 0.06 + 0.17 * k; s.set(k, k * 1.1, k);
+    q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), rand() * 6.28);
+    canopy.setMatrixAt(i, m4.compose(p, q, s));
+    canopy.setColorAt(i, treeCols[i % 2]);
+  });
+  mats.canopyMesh = canopy;
+  scene.add(trunk, canopy);
+
+  // Airport pins: a little post with a bobbing zone-coloured ball
+  mats.post = toon(0xffffff);
+  mats.pin = {};
+  Object.keys(ZONES).forEach(z => { mats.pin[z] = toon(col("--" + ZONES[z].cls), { emissive: 0x000000 }); });
+  mats.ring = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9, side: THREE.DoubleSide });
+  const postGeo = new THREE.CylinderGeometry(0.025, 0.025, 0.42, 6);
+  const ballGeo = new THREE.SphereGeometry(1, 14, 10);
+  const ringGeo = new THREE.RingGeometry(0.16, 0.22, 24);
+  AIRPORTS.forEach(ap => {
+    const g = new THREE.Group();
+    const base = onLand(ap.lon, ap.lat) ? LAND_H + 0.06 : 0.02;
+    g.position.set(toX(ap.lon), base, toZ(ap.lat));
+    const post = new THREE.Mesh(postGeo, mats.post); post.position.y = 0.21; post.castShadow = true;
+    const rad = ap.hub ? 0.13 : 0.095;
+    const ball = new THREE.Mesh(ballGeo, mats.pin[ap.zone]); ball.scale.setScalar(rad); ball.position.y = 0.45; ball.castShadow = true;
+    ball.userData = { kind: "airport", ap };
+    const ring = new THREE.Mesh(ringGeo, mats.ring); ring.rotation.x = -Math.PI / 2; ring.position.y = 0.02; ring.visible = false;
+    g.add(post, ball, ring);
+    scene.add(g); pickables.push(ball);
+    pinObjs.set(ap.iata, { group: g, ball, ring, base: 0.45, phase: rand() * 6.28, rad });
+  });
+
+  // Puffy clouds drifting over the archipelago
+  mats.cloud = toon(col("--cloud"), { transparent: true, opacity: 0.92 });
+  const puff = new THREE.IcosahedronGeometry(1, 1);
+  for (let i = 0; i < 9; i++) {
+    const g = new THREE.Group();
+    const n = 3 + Math.floor(rand() * 3);
+    for (let j = 0; j < n; j++) {
+      const m = new THREE.Mesh(puff, mats.cloud);
+      const r = 0.45 + rand() * 0.4;
+      m.scale.set(r, r * 0.75, r); m.position.set(j * 0.55 - n * 0.27, rand() * 0.2, (rand() - 0.5) * 0.5);
+      m.castShadow = true; g.add(m);
+    }
+    g.position.set(-28 + rand() * 56, 3.6 + rand() * 1.4, -9 + rand() * 18);
+    g.userData.speed = 0.25 + rand() * 0.35;
+    scene.add(g); clouds.push(g);
+  }
+
+  // Camera + controls
+  controls = new THREE.OrbitControls(camera, canvas);
+  controls.enableDamping = true; controls.dampingFactor = 0.08;
+  controls.screenSpacePanning = false;
+  controls.minDistance = 3; controls.maxDistance = 150;
+  controls.maxPolarAngle = 1.25; controls.minPolarAngle = 0.15;
+  controls.mouseButtons = { LEFT: THREE.MOUSE.PAN, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.ROTATE };
+  controls.touches = { ONE: THREE.TOUCH.PAN, TWO: THREE.TOUCH.DOLLY_ROTATE };
+  controls.autoRotateSpeed = 0.6;
+  controls.addEventListener("start", () => { flight = null; userMoved = true; });
+  applyTheme();
+}
+
+/* ---------- Theme ---------- */
+function applyTheme() {
+  if (!renderer) return;
+  const night = tok("--night") === "1";
+  const sky = col("--sky");
+  scene.background = sky;
+  seaMat.uniforms.uSea.value = col("--sea");
+  seaMat.uniforms.uFoam.value = col("--sea-foam");
+  seaMat.uniforms.uDeep.value = col("--sea-deep");
+  seaMat.uniforms.uFog.value = sky;
+  mats.cliff.color = col("--cliff");
+  Object.keys(ZONES).forEach(z => {
+    mats.zone[z].color = col("--" + ZONES[z].cls);
+    mats.pin[z].color = col("--" + ZONES[z].cls);
+    mats.pin[z].emissive = night ? col("--" + ZONES[z].cls).multiplyScalar(0.55) : new THREE.Color(0);
+  });
+  mats.rock.color = col("--rock"); mats.snow.color = col("--snow");
+  mats.river.color = col("--river"); mats.trunk.color = col("--trunk");
+  mats.cloud.color = col("--cloud"); mats.cloud.opacity = night ? 0.55 : 0.92;
+  const tc = [col("--tree"), col("--tree-2")];
+  for (let i = 0; i < mats.canopyMesh.count; i++) mats.canopyMesh.setColorAt(i, tc[i % 2]);
+  mats.canopyMesh.instanceColor.needsUpdate = true;
+  mats.border.opacity = night ? 0.25 : 0.55;
+  hemiLight.intensity = night ? 0.5 : 0.75;
+  hemiLight.color.set(night ? 0x9fb0ff : 0xffffff);
+  sunLight.intensity = night ? 0.45 : 0.75;
+  sunLight.color.set(night ? 0xbfcaff : 0xfff3dd);
+}
+
+/* ---------- Camera flights ---------- */
+let flight = null;
+let userMoved = false;   // until the viewer touches the map, keep the whole country framed
+function homeView() {
+  const aspect = camera.aspect || 1.6;
+  const halfW = 25, halfH = 9;
+  const t = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+  const dist = Math.max(halfH / t, halfW / (t * aspect)) * 0.98;
+  const dir = new THREE.Vector3(0, 1.05, 0.75).normalize();
+  return { target: new THREE.Vector3(0, 0, 0.3), pos: dir.multiplyScalar(dist).add(new THREE.Vector3(0, 0, 0.3)) };
+}
+function flyTo(target, dist, dirOverride) {
+  if (!controls) return;
+  const dir = dirOverride || camera.position.clone().sub(controls.target).normalize();
+  if (dir.y < 0.5) { dir.y = 0.75; dir.normalize(); }
+  flight = {
+    t0: performance.now(), dur: reduceMotion ? 1 : 1000,
+    fromT: controls.target.clone(), toT: target.clone(),
+    fromP: camera.position.clone(), toP: target.clone().add(dir.multiplyScalar(dist)),
+  };
+}
+function flyHome() {
+  userMoved = false;
+  const h = homeView();
+  flyTo(h.target, h.pos.distanceTo(h.target), h.pos.clone().sub(h.target).normalize());
+}
+function flyToZone(z) {
+  if (z === "ALL") return flyHome();
+  userMoved = true;
+  const list = AIRPORTS.filter(a => a.zone === z);
+  const xs = list.map(a => toX(a.lon)), zs = list.map(a => toZ(a.lat));
+  const c = new THREE.Vector3((Math.min(...xs) + Math.max(...xs)) / 2, 0, (Math.min(...zs) + Math.max(...zs)) / 2);
+  const span = Math.max(Math.max(...xs) - Math.min(...xs), (Math.max(...zs) - Math.min(...zs)) * 1.6);
+  const t = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+  flyTo(c, Math.max(8, (span / 2 + 2) / (t * Math.min(camera.aspect, 1.8))), new THREE.Vector3(0, 1.05, 0.75).normalize());
+}
+
+/* ---------- Labels ---------- */
+const tagEls = new Map();
+const seaEls = [];
+let labelsOn = true;
+let selected = null;
 AIRPORTS.forEach(ap => {
-  const cls = `ap ${ZONES[ap.zone].cls}${ap.hub ? " hub" : ""}`;
-  const icon = L.divIcon({
-    className: "", iconSize: [0, 0],
-    html: `<div class="${cls}" data-ap="${ap.code}"><span class="pin"></span><span class="tag"><b>${ap.code}</b><time>--:--</time></span></div>`,
-  });
-  const m = L.marker([ap.lat, ap.lon], { icon, title: `${ap.code} – ${ap.name}`, riseOnHover: true, zIndexOffset: ap.hub ? 500 : 0 }).addTo(map);
-  m.bindPopup(() => popupHtml(ap), { autoPanPadding: [30, 30] });
-  m.on("popupopen", () => setActive(ap.code));
-  m.on("popupclose", () => setActive(null));
-  markers.set(ap.code, m);
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = `tag ${ZONES[ap.zone].cls}`;
+  b.innerHTML = `<span class="code">${ap.iata}<i>/${ap.icao}</i></span><time>--:--</time>`;
+  b.setAttribute("aria-label", `${ap.iata} / ${ap.icao}, Bandara ${ap.name}`);
+  b.addEventListener("click", () => select(ap.iata, false));
+  labelsEl.appendChild(b);
+  tagEls.set(ap.iata, { el: b, time: b.querySelector("time"), w: 0, h: 0 });
+});
+SEAS.forEach(([name, lon, lat]) => {
+  const d = document.createElement("div");
+  d.className = "sea-label"; d.textContent = name;
+  labelsEl.appendChild(d);
+  seaEls.push({ el: d, pos: new THREE.Vector3(toX(lon), 0.05, toZ(lat)), w: 0, h: 0 });
 });
 
-function popupHtml(ap) {
-  const t = zoneNow(ap.zone);
-  return `<div class="pop" data-pop="${ap.code}">
-    <div class="pop-code">${ap.code} <span class="zpill ${ZONES[ap.zone].cls}">${ap.zone}</span></div>
-    <div class="pop-name">Bandara ${esc(ap.name)}</div>
-    <div class="pop-sub">${esc(ap.city)}, ${esc(ap.prov)}</div>
-    <div class="pop-time"><span data-pop-time>${t.hm}:${t.sec}</span></div>
-    <div class="pop-date"><span data-pop-date>${t.date} · ${partOfDay(t.h)}</span></div>
-    <div class="pop-diff">${ZONES[ap.zone].name} (UTC+${ZONES[ap.zone].offset})<br><span style="color:var(--muted)">${diffText(ap.zone)}</span></div>
-  </div>`;
+const v3 = new THREE.Vector3();
+function placeLabels(w, h) {
+  const boxes = [];
+  const fits = (x, y, bw, bh) => {
+    if (x < 2 || y < 2 || x + bw > w - 2 || y + bh > h - 2) return false;
+    for (const b of boxes) if (x < b[2] && x + bw > b[0] && y < b[3] && y + bh > b[1]) return false;
+    return true;
+  };
+  const order = AIRPORTS.filter(ap => !tagEls.get(ap.iata).el.classList.contains("dim") || ap.iata === selected)
+    .sort((a, b) => (b.iata === selected) - (a.iata === selected) || b.hub - a.hub);
+  const shown = new Set();
+  for (const ap of order) {
+    const t = tagEls.get(ap.iata), pin = pinObjs.get(ap.iata);
+    if (!labelsOn && ap.iata !== selected) continue;
+    if (!t.w) { t.w = t.el.offsetWidth; t.h = t.el.offsetHeight; }
+    v3.copy(pin.group.position); v3.y += pin.ball.position.y + pin.rad + 0.04;
+    v3.project(camera);
+    if (v3.z > 1) continue;
+    const sx = (v3.x + 1) / 2 * w, sy = (1 - v3.y) / 2 * h;
+    const x = sx - t.w / 2, y = sy - t.h - 9;
+    if (!fits(x, y, t.w, t.h + 6)) continue;
+    boxes.push([x, y, x + t.w, y + t.h + 6]);
+    t.el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
+    shown.add(ap.iata);
+  }
+  tagEls.forEach((t, code) => { t.el.style.visibility = shown.has(code) ? "visible" : "hidden"; });
+  // sea names: lowest priority
+  const dist = camera.position.distanceTo(controls.target);
+  seaEls.forEach(s => {
+    if (!s.w) { s.w = s.el.offsetWidth; s.h = s.el.offsetHeight; }
+    v3.copy(s.pos).project(camera);
+    const x = (v3.x + 1) / 2 * w - s.w / 2, y = (1 - v3.y) / 2 * h - s.h / 2;
+    const ok = v3.z < 1 && dist < 120 && fits(x, y, s.w, s.h);
+    if (ok) { boxes.push([x, y, x + s.w, y + s.h]); s.el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`; }
+    s.el.style.visibility = ok ? "visible" : "hidden";
+  });
 }
 
-function updateZoomClass() {
-  const z = map.getZoom();
-  map.getContainer().classList.toggle("zoom-low", z < 5.75);
-  map.getContainer().classList.toggle("zoom-min", z < 4.5);
+/* ---------- Picking ---------- */
+const raycaster = new THREE.Raycaster();
+const ndc = new THREE.Vector2();
+let hoverXY = null;
+function pick(cx, cy) {
+  const r = canvas.getBoundingClientRect();
+  ndc.set(((cx - r.left) / r.width) * 2 - 1, -((cy - r.top) / r.height) * 2 + 1);
+  raycaster.setFromCamera(ndc, camera);
+  const hits = raycaster.intersectObjects(pickables, false).filter(h => h.object.parent.visible);
+  if (!hits.length) return null;
+  const rank = { airport: 0, mount: 1, river: 2, prov: 3 };
+  const near = hits.filter(h => h.distance < hits[0].distance + 0.6);
+  near.sort((a, b) => rank[a.object.userData.kind] - rank[b.object.userData.kind]);
+  return near[0].object.userData;
 }
-map.on("zoomend", updateZoomClass);
-updateZoomClass();
+function updateHover() {
+  if (!hoverXY) return;
+  const [cx, cy] = hoverXY; hoverXY = null;
+  const d = pick(cx, cy);
+  if (!d) { tipEl.hidden = true; canvas.style.cursor = ""; return; }
+  let html;
+  if (d.kind === "airport") html = `<b>${d.ap.iata} / ${d.ap.icao}</b> <small>${esc(d.ap.city)}</small>`;
+  else if (d.kind === "mount") html = `<b>${esc(d.name)}</b> <small>${d.elev.toLocaleString("id-ID")} mdpl</small>`;
+  else if (d.kind === "river") html = `<b>${esc(d.name)}</b>`;
+  else html = `<b>${esc(d.name)}</b> <small>${d.zone} · UTC+${ZONES[d.zone].offset}</small>`;
+  tipEl.innerHTML = html; tipEl.hidden = false;
+  const r = board.getBoundingClientRect();
+  const x = Math.min(cx - r.left + 14, r.width - tipEl.offsetWidth - 6);
+  tipEl.style.transform = `translate(${x}px, ${cy - r.top + 14}px)`;
+  canvas.style.cursor = d.kind === "airport" ? "pointer" : "";
+}
+let downAt = null;
+canvas.addEventListener("pointermove", e => { if (e.pointerType === "mouse") hoverXY = [e.clientX, e.clientY]; });
+canvas.addEventListener("pointerleave", () => { tipEl.hidden = true; });
+canvas.addEventListener("pointerdown", e => { downAt = [e.clientX, e.clientY]; });
+canvas.addEventListener("pointerup", e => {
+  if (!downAt || Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) > 5) return;
+  const d = pick(e.clientX, e.clientY);
+  if (d && d.kind === "airport") select(d.ap.iata, false);
+});
+canvas.addEventListener("contextmenu", e => e.preventDefault());
 
-/* ---------- Roster ---------- */
+/* ---------- Render loop ---------- */
+function resize() {
+  const w = board.clientWidth, h = board.clientHeight;
+  if (!w || !h) return;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  if (controls && !userMoved && !flight) {
+    const h = homeView();
+    controls.target.copy(h.target); camera.position.copy(h.pos);
+  }
+}
+const ease = t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  const t = now / 1000;
+  if (flight) {
+    const k = Math.min(1, (now - flight.t0) / flight.dur), e = ease(k);
+    controls.target.lerpVectors(flight.fromT, flight.toT, e);
+    camera.position.lerpVectors(flight.fromP, flight.toP, e);
+    if (k >= 1) flight = null;
+  }
+  controls.update();
+  const camDist = camera.position.distanceTo(controls.target);
+  seaMat.uniforms.uFogNear.value = camDist * 1.4;
+  seaMat.uniforms.uFogFar.value = camDist * 3.2;
+  if (!reduceMotion) {
+    seaMat.uniforms.uTime.value = t;
+    pinObjs.forEach((p, code) => {
+      p.ball.position.y = p.base + Math.sin(t * 2.2 + p.phase) * 0.035;
+      if (code === selected) {
+        const s = 1 + ((t * 0.9) % 1) * 1.6;
+        p.ring.scale.set(s, s, s); p.ring.material.opacity = 1 - ((t * 0.9) % 1);
+      }
+    });
+    smokePuffs.forEach(pf => {
+      const k = (t * 0.35 + pf.userData.phase) % 1;
+      pf.position.set(Math.sin(k * 6 + pf.userData.phase * 9) * 0.06, pf.userData.top + k * 0.7, 0);
+      pf.scale.setScalar(0.6 + k * 1.6);
+    });
+    clouds.forEach(c => {
+      c.position.x += c.userData.speed * dt;
+      if (c.position.x > 30) c.position.x = -30;
+    });
+  }
+  renderer.render(scene, camera);
+  placeLabels(board.clientWidth, board.clientHeight);
+  updateHover();
+  requestAnimationFrame(frame);
+}
+
+if (renderer && PROVINCES) {
+  buildScene();
+  resize();
+  const h = homeView();
+  controls.target.copy(h.target); camera.position.copy(h.pos);
+  new ResizeObserver(resize).observe(board);
+  requestAnimationFrame(frame);
+}
+
+/* =====================  ROSTER + UI  ===================== */
 const listEl = document.getElementById("list");
 const countEl = document.getElementById("count");
 const qEl = document.getElementById("q");
 let zoneFilter = "ALL";
-let activeCode = null;
 
 AIRPORTS.forEach(ap => {
   const li = document.createElement("li");
   li.className = `row ${ZONES[ap.zone].cls}`;
   li.tabIndex = 0;
-  li.dataset.code = ap.code;
-  li.dataset.search = `${ap.code} ${ap.name} ${ap.city} ${ap.prov} ${ap.zone}`.toLowerCase();
-  li.innerHTML = `<span class="row-code">${ap.code}</span>
+  li.dataset.search = `${ap.iata} ${ap.icao} ${ap.name} ${ap.city} ${ap.prov} ${ap.zone}`.toLowerCase();
+  li.innerHTML = `<span class="row-code"><b>${ap.iata}</b><i>${ap.icao}</i></span>
     <span style="min-width:0"><div class="row-name">${esc(ap.name)}</div><div class="row-city">${esc(ap.city)} · ${esc(ap.prov)}</div></span>
     <span class="row-time"><time>--:--:--</time><small></small></span>`;
-  const open = () => focusAirport(ap.code);
-  li.addEventListener("click", open);
-  li.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } });
+  li.addEventListener("click", () => select(ap.iata, true));
+  li.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); select(ap.iata, true); } });
   listEl.appendChild(li);
-  ap.row = li;
-  ap.rowTime = li.querySelector("time");
-  ap.rowSmall = li.querySelector("small");
+  ap.row = li; ap.rowTime = li.querySelector("time"); ap.rowSmall = li.querySelector("small");
 });
 const emptyEl = document.createElement("li");
 emptyEl.className = "empty";
-emptyEl.textContent = "Tidak ada bandara yang cocok. Coba kode IATA (mis. DPS) atau nama kota.";
+emptyEl.textContent = "Tidak ada bandara yang cocok. Coba kode IATA (DPS), ICAO (WADD), atau nama kota.";
 listEl.appendChild(emptyEl);
 
-function focusAirport(code) {
-  const ap = AIRPORTS.find(a => a.code === code);
-  const m = markers.get(code);
-  map.flyTo([ap.lat, ap.lon], Math.max(map.getZoom(), 7), { duration: 0.8 });
-  map.once("moveend", () => m.openPopup());
-}
-function setActive(code) {
-  activeCode = code;
-  AIRPORTS.forEach(ap => {
-    ap.row.classList.toggle("active", ap.code === code);
-    const el = markers.get(ap.code).getElement();
-    el && el.querySelector(".ap").classList.toggle("active", ap.code === code);
-  });
-  if (code) {
-    const row = AIRPORTS.find(a => a.code === code).row;
-    if (!row.hidden) {
-      const top = row.offsetTop;
-      if (top < listEl.scrollTop || top + row.offsetHeight > listEl.scrollTop + listEl.clientHeight)
-        listEl.scrollTo({ top: top - listEl.clientHeight / 2 + row.offsetHeight / 2, behavior: "smooth" });
-    }
+const cardEl = document.getElementById("card");
+function select(code, fromList) {
+  selected = code;
+  const ap = code && AIRPORTS.find(a => a.iata === code);
+  AIRPORTS.forEach(a => a.row.classList.toggle("active", a.iata === code));
+  tagEls.forEach((t, c) => t.el.classList.toggle("sel", c === code));
+  pinObjs.forEach((p, c) => { p.ring.visible = c === code; p.ball.scale.setScalar(c === code ? p.rad * 1.4 : p.rad); });
+  if (!ap) { cardEl.hidden = true; return; }
+  cardEl.className = `card ${ZONES[ap.zone].cls}`;
+  cardEl.hidden = false;
+  document.getElementById("c-iata").textContent = ap.iata;
+  document.getElementById("c-icao").textContent = ap.icao;
+  document.getElementById("c-name").textContent = `Bandara ${ap.name}`;
+  document.getElementById("c-sub").textContent = `${ap.city}, ${ap.prov}`;
+  document.getElementById("c-zone").textContent = ap.zone;
+  document.getElementById("c-zname").textContent = `${ZONES[ap.zone].name} (UTC+${ZONES[ap.zone].offset})`;
+  document.getElementById("c-diff").textContent = diffText(ap.zone);
+  tick();
+  const pin = pinObjs.get(code);
+  if (pin && controls) { userMoved = true; flyTo(pin.group.position.clone(), 12); }
+  if (!ap.row.hidden) {
+    const top = ap.row.offsetTop;
+    if (top < listEl.scrollTop || top + ap.row.offsetHeight > listEl.scrollTop + listEl.clientHeight)
+      listEl.scrollTo({ top: top - listEl.clientHeight / 2 + ap.row.offsetHeight / 2, behavior: reduceMotion ? "auto" : "smooth" });
   }
+  if (fromList && window.matchMedia("(max-width: 900px)").matches) board.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
 }
+document.getElementById("card-close").addEventListener("click", () => select(null));
 
 function applyFilter() {
   const q = qEl.value.trim().toLowerCase();
   let shown = 0;
   AIRPORTS.forEach(ap => {
-    const zoneOk = zoneFilter === "ALL" || ap.zone === zoneFilter;
-    const visible = zoneOk && (!q || ap.row.dataset.search.includes(q));
+    const visible = (zoneFilter === "ALL" || ap.zone === zoneFilter) && (!q || ap.row.dataset.search.includes(q));
     ap.row.hidden = !visible;
-    const el = markers.get(ap.code).getElement();
-    el && el.querySelector(".ap").classList.toggle("dim", !visible);
+    tagEls.get(ap.iata).el.classList.toggle("dim", !visible);
+    const pin = pinObjs.get(ap.iata);
+    if (pin) pin.group.visible = visible || ap.iata === selected;
     if (visible) shown++;
   });
   emptyEl.hidden = shown > 0;
@@ -556,27 +1136,30 @@ function applyFilter() {
   document.querySelectorAll("[data-filter]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.filter === zoneFilter)));
   document.querySelectorAll(".zone").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.zone === zoneFilter)));
 }
-function setZone(z, fit) {
+function setZone(z) {
   zoneFilter = z;
   applyFilter();
-  if (fit) {
-    const pts = AIRPORTS.filter(a => z === "ALL" || a.zone === z).map(a => [a.lat, a.lon]);
-    map.flyToBounds(z === "ALL" ? INDONESIA : L.latLngBounds(pts).pad(0.15), { duration: 0.8 });
-  }
+  flyToZone(z);
 }
 qEl.addEventListener("input", applyFilter);
-document.querySelectorAll("[data-filter]").forEach(b => b.addEventListener("click", () => setZone(b.dataset.filter, true)));
-document.querySelectorAll(".zone").forEach(b => b.addEventListener("click", () => setZone(zoneFilter === b.dataset.zone ? "ALL" : b.dataset.zone, true)));
+document.querySelectorAll("[data-filter]").forEach(b => b.addEventListener("click", () => setZone(b.dataset.filter)));
+document.querySelectorAll(".zone").forEach(b => b.addEventListener("click", () => setZone(zoneFilter === b.dataset.zone ? "ALL" : b.dataset.zone)));
 
 const btnLabels = document.getElementById("btn-labels");
 btnLabels.addEventListener("click", () => {
-  const on = btnLabels.getAttribute("aria-pressed") !== "true";
-  btnLabels.setAttribute("aria-pressed", String(on));
-  map.getContainer().classList.toggle("labels-off", !on);
+  labelsOn = btnLabels.getAttribute("aria-pressed") !== "true";
+  btnLabels.setAttribute("aria-pressed", String(labelsOn));
+});
+const btnSpin = document.getElementById("btn-spin");
+btnSpin.addEventListener("click", () => {
+  if (!controls) return;
+  controls.autoRotate = !controls.autoRotate;
+  btnSpin.setAttribute("aria-pressed", String(controls.autoRotate));
 });
 document.getElementById("btn-reset").addEventListener("click", () => {
-  map.closePopup();
-  setZone("ALL", true);
+  select(null);
+  zoneFilter = "ALL"; qEl.value = ""; applyFilter();
+  flyHome();
 });
 
 Object.keys(ZONES).forEach(z => {
@@ -587,13 +1170,12 @@ Object.keys(ZONES).forEach(z => {
 const youTime = document.getElementById("you-time");
 const offMin = -new Date().getTimezoneOffset();
 document.getElementById("you-tz").textContent =
-  `${Intl.DateTimeFormat().resolvedOptions().timeZone || "Zona lokal"} · UTC${offMin >= 0 ? "+" : "−"}${Math.floor(Math.abs(offMin) / 60)}${Math.abs(offMin) % 60 ? ":" + pad(Math.abs(offMin) % 60) : ""}`;
+  `(UTC${offMin >= 0 ? "+" : "−"}${Math.floor(Math.abs(offMin) / 60)}${Math.abs(offMin) % 60 ? ":" + pad(Math.abs(offMin) % 60) : ""})`;
 
 function tick() {
   const now = Date.now();
   const d = new Date(now);
   youTime.textContent = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-
   const z = {};
   const refDay = zoneNow("WIB", now).dayKey;
   Object.keys(ZONES).forEach(k => {
@@ -601,33 +1183,24 @@ function tick() {
     document.querySelector(`[data-clock="${k}"]`).innerHTML = `${z[k].hm}<span class="sec">:${z[k].sec}</span>`;
     document.querySelector(`[data-date="${k}"]`).textContent = z[k].date;
   });
-
   AIRPORTS.forEach(ap => {
     const t = z[ap.zone];
     ap.rowTime.textContent = `${t.hm}:${t.sec}`;
-    const dayNote = t.dayKey !== refDay ? ` · ${t.shortDate}` : "";
-    ap.rowSmall.textContent = `${ap.zone} · ${partOfDay(t.h)}${dayNote}`;
-    const el = markers.get(ap.code).getElement();
-    if (el) {
-      const tEl = el.querySelector(".tag time");
-      if (tEl.textContent !== t.hm) tEl.textContent = t.hm;
-    }
+    ap.rowSmall.textContent = `${ap.zone} · ${partOfDay(t.h)}${t.dayKey !== refDay ? " · " + t.shortDate : ""}`;
+    const tag = tagEls.get(ap.iata).time;
+    if (tag.textContent !== t.hm) tag.textContent = t.hm;
   });
-
-  const pop = document.querySelector("[data-pop]");
-  if (pop) {
-    const ap = AIRPORTS.find(a => a.code === pop.dataset.pop);
+  if (selected) {
+    const ap = AIRPORTS.find(a => a.iata === selected);
     const t = z[ap.zone];
-    pop.querySelector("[data-pop-time]").textContent = `${t.hm}:${t.sec}`;
-    pop.querySelector("[data-pop-date]").textContent = `${t.date} · ${partOfDay(t.h)}`;
+    document.getElementById("c-time").textContent = `${t.hm}:${t.sec}`;
+    document.getElementById("c-date").textContent = `${t.date} · ${partOfDay(t.h)}`;
   }
 }
 tick();
 applyFilter();
 setInterval(tick, 1000);
 
-// Re-colour vector layers when the viewer switches theme.
-const recolor = () => { if (provLayer) provLayer.setStyle(provStyle); drawMeridians(); };
-window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", recolor);
-new MutationObserver(recolor).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", applyTheme);
+new MutationObserver(applyTheme).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
 </script>

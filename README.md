@@ -1,6 +1,6 @@
 # Jam Bandara Nusantara
 
-Dashboard peta Indonesia yang menampilkan lokasi bandara beserta **waktu lokal** masing-masing, dengan wilayah Indonesia diwarnai per zona waktu:
+Dashboard peta 3D bergaya kartun yang menampilkan lokasi bandara Indonesia (kode IATA/ICAO) beserta **waktu lokal** masing-masing, dengan pulau-pulau diwarnai per zona waktu:
 
 | Zona | Offset | Wilayah |
 |------|--------|---------|
@@ -9,19 +9,20 @@ Dashboard peta Indonesia yang menampilkan lokasi bandara beserta **waktu lokal**
 | **WIT** – Waktu Indonesia Timur | UTC+9 | Maluku, Maluku Utara, Papua |
 
 ## Fitur
-- Peta provinsi Indonesia diwarnai sesuai zona waktu, plus garis meridian acuan 105°, 120°, 135° BT.
-- 65 bandara utama dengan label kode IATA dan jam lokal yang berjalan langsung (label bandara non-hub muncul saat peta di-zoom).
-- Klik bandara (di peta atau di daftar) untuk melihat jam detik, tanggal, bagian hari, dan selisih dengan waktu perangkat Anda.
+- Peta 3D gaya game kartun (Three.js): pulau-pulau timbul berwarna sesuai zona waktu, laut beranimasi, awan melayang.
+- Gunung (24 puncak utama, puncak tinggi bersalju, gunung api aktif berasap), sungai besar (Kapuas, Mahakam, Barito, Musi, Bengawan Solo, Mamberamo, Digul, dll.), dan hutan di pulau-pulau besar. Arahkan kursor ke gunung atau sungai untuk melihat namanya.
+- 65 bandara dengan label **IATA/ICAO** (mis. `CGK/WIII`) dan jam lokal yang berjalan langsung; label diatur otomatis agar tidak bertumpuk.
+- Klik bandara (di peta atau di daftar) untuk terbang ke lokasinya dan melihat jam detik, tanggal, bagian hari, dan selisih dengan jam perangkat Anda.
 - Jam besar per zona di bagian atas; klik untuk memfilter dan memusatkan peta ke zona tersebut.
-- Pencarian berdasarkan kode, nama bandara, kota, atau provinsi.
-- Mode terang/gelap mengikuti pengaturan sistem; tampilan responsif untuk ponsel.
+- Pencarian berdasarkan kode IATA, ICAO, nama bandara, kota, atau provinsi.
+- Kontrol peta: seret untuk geser, klik kanan / dua jari untuk memutar, scroll / cubit untuk zoom, tombol **Putar** untuk rotasi otomatis.
+- Mode terang (siang) dan gelap (malam) mengikuti pengaturan sistem; tampilan responsif untuk ponsel.
 
 ## Menjalankan
-Cukup buka `index.html` di browser (butuh koneksi internet untuk memuat Leaflet dari cdnjs dan font Google). Bisa juga di-host lewat GitHub Pages.
+Cukup buka `index.html` di browser (butuh koneksi internet untuk memuat Three.js dari cdnjs/jsDelivr dan font Google; browser harus mendukung WebGL). Bisa juga di-host lewat GitHub Pages.
 
 ## Struktur
-- `src/dashboard.html` – template halaman (HTML, CSS, JS, dan daftar bandara).
-- `src/leaflet.css` – stylesheet Leaflet 1.9.4 (di-inline saat build).
+- `src/dashboard.html` – template halaman (HTML, CSS, JS, adegan 3D, serta data bandara, gunung, dan sungai).
 - `data/provinces.json` – batas provinsi yang sudah disederhanakan dan diberi tag zona waktu.
 - `scripts/build.py` – menggabungkan semuanya menjadi `index.html`.
 - `scripts/prepare_provinces.py` – membuat `data/provinces.json` dari GeoJSON sumber.
@@ -34,4 +35,5 @@ python3 scripts/build.py
 
 ## Sumber data
 - Batas provinsi: Peta Dasar BAKOSURTANAL skala 1:250.000 via [superpikar/indonesia-geojson](https://github.com/superpikar/indonesia-geojson). Data ini memakai pembagian provinsi lama (mis. Kepulauan Riau tergabung dengan Riau, Papua belum dimekarkan), tetapi zona waktunya tetap sama.
-- Koordinat bandara: dihimpun manual dari data publik bandara (perkiraan, untuk keperluan visualisasi).
+- Koordinat dan kode IATA/ICAO bandara: dihimpun manual dari data publik bandara (perkiraan, untuk keperluan visualisasi).
+- Gunung, sungai, dan hutan: posisi perkiraan, bersifat ilustratif.
