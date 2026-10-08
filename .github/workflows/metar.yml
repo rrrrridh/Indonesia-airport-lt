@@ -3,7 +3,8 @@ name: METAR update & deploy
 # Fetches the latest METAR for every airport every 30 minutes and publishes the
 # dashboard (index.html + data/metar.json) to GitHub Pages.
 # Requires: Settings → Pages → Source = "GitHub Actions".
-# Scheduled runs only fire on the default branch.
+# Scheduled runs only fire on the default branch. Runs started on another
+# branch (workflow_dispatch) fetch and log but never deploy.
 
 on:
   schedule:
@@ -14,19 +15,14 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
-  group: pages
+  group: pages-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  deploy:
+  fetch:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
 
@@ -51,5 +47,16 @@ jobs:
         with:
           path: _site
 
+  deploy:
+    needs: fetch
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - id: deployment
         uses: actions/deploy-pages@v4
