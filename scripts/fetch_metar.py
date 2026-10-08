@@ -15,7 +15,7 @@ without code changes):
 """
 import datetime as dt
 import html
-import http.cookiejar
+from http.cookiejar import CookieJar
 import json
 import os
 import pathlib
@@ -47,7 +47,7 @@ def airport_icaos():
     return re.findall(r'\[\s*"[A-Z]{3}",\s*"([A-Z]{4})"', src)
 
 
-def http(url, data=None, timeout=40):
+def get_text(url, data=None, timeout=40):
     req = urllib.request.Request(url, data=data, headers={"User-Agent": UA})
     with urllib.request.urlopen(req, timeout=timeout) as r:
         return r.read().decode("utf-8", "replace")
@@ -57,7 +57,7 @@ class Browser:
     """Tiny cookie-keeping client that returns the response even for HTTP errors, so they can be logged."""
 
     def __init__(self):
-        self.opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
+        self.opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(CookieJar()))
 
     def request(self, url, data=None, headers=None, timeout=40):
         h = dict(BROWSER_HEADERS)
@@ -172,7 +172,7 @@ def from_bmkg(icaos, now):
 def from_awc(icaos, now):
     url = AWC_URL + "?" + urllib.parse.urlencode({"ids": ",".join(icaos), "format": "raw", "hours": 3})
     try:
-        found = parse_reports(http(url), set(icaos), now)
+        found = parse_reports(get_text(url), set(icaos), now)
     except Exception as e:
         print(f"AWC: {e}", file=sys.stderr)
         return {}
@@ -184,7 +184,12 @@ def main(out_path):
     now = dt.datetime.now(dt.timezone.utc)
     icaos = airport_icaos()
     stations = {}
-    for k, v in from_bmkg(icaos, now).items():
+    try:
+        bmkg = from_bmkg(icaos, now)
+    except Exception as e:  # never let a BMKG problem stop the NOAA fallback
+        print(f"BMKG: unexpected error {type(e).__name__}: {e}", file=sys.stderr)
+        bmkg = {}
+    for k, v in bmkg.items():
         stations[k] = {**v, "source": "BMKG"}
     missing = [i for i in icaos if i not in stations]
     if missing:
