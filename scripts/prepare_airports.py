@@ -37,10 +37,11 @@ def clean_city(city):
 def main(airports_csv, regions_csv, out_path):
     out = pathlib.Path(out_path)
     curated = {a[0]: a for a in json.loads(out.read_text(encoding="utf-8"))} if out.exists() else {}
-    regions = {r["code"]: r["name"] for r in csv.DictReader(open(regions_csv, encoding="utf-8")) if r["iso_country"] == "ID"}
-
-    rows = [r for r in csv.DictReader(open(airports_csv, encoding="utf-8"))
-            if r["iso_country"] == "ID" and r["type"] != "closed" and r["iata_code"]]
+    with open(regions_csv, encoding="utf-8") as f:
+        regions = {r["code"]: r["name"] for r in csv.DictReader(f) if r["iso_country"] == "ID"}
+    with open(airports_csv, encoding="utf-8") as f:
+        rows = [r for r in csv.DictReader(f)
+                if r["iso_country"] == "ID" and r["type"] != "closed" and r["iata_code"]]
     by_iata = {r["iata_code"]: r for r in rows}
     wanted = {r["iata_code"] for r in rows
               if r["scheduled_service"] == "yes" or r["type"] in ("medium_airport", "large_airport")}
