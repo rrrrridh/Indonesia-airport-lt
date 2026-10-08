@@ -42,8 +42,8 @@ REPORT_RE = re.compile(
 
 
 def airport_icaos():
-    src = (ROOT / "src" / "dashboard.html").read_text(encoding="utf-8")
-    return re.findall(r'\[\s*"[A-Z]{3}",\s*"([A-Z]{4})"', src)
+    airports = json.loads((ROOT / "data" / "airports.json").read_text(encoding="utf-8"))
+    return [a[1] for a in airports if a[1]]
 
 
 def get_text(url, data=None, timeout=40):
