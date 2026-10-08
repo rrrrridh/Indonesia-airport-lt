@@ -1,0 +1,52 @@
+name: Checks
+
+# Runs on every pull request (and on pushes to branches other than main) so a
+# broken page or script is caught before it is merged and deployed.
+
+on:
+  pull_request:
+  push:
+    branches-ignore: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Python scripts compile
+        run: python3 -m py_compile scripts/*.py tests/*.py
+
+      - name: index.html is rebuilt from src/ and data/
+        run: |
+          python3 scripts/build.py
+          if ! git diff --quiet -- index.html; then
+            echo "::error file=index.html::index.html is out of date. Run: python3 scripts/build.py and commit the result."
+            git diff --stat -- index.html
+            exit 1
+          fi
+
+      - name: Unit tests (Python)
+        run: python3 -W error::ResourceWarning -m unittest discover -s tests -v
+
+      - name: Page checks (JavaScript)
+        run: node tests/check_page.mjs index.html
+
+      - name: Workflow files are valid YAML
+        run: python3 -c "import sys, yaml; [yaml.safe_load(open(f)) for f in sys.argv[1:]]" .github/workflows/*.yml

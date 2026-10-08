@@ -17,6 +17,8 @@ Dashboard peta 3D bergaya kartun yang menampilkan lokasi bandara Indonesia (kode
 - **Bayangan siang/malam**: sisi Indonesia yang sedang malam diberi bayangan gelap, dengan garis kuning sebagai batas siang/malam (terminator) yang bergerak sesuai posisi matahari sebenarnya. Bisa dimatikan dengan tombol **Siang/malam**.
 - **METAR per 30 menit**: laporan cuaca bandara (METAR/SPECI) dari NOAA Aviation Weather Center (laporan stasiun BMKG), diterjemahkan ke bahasa Indonesia (angin, jarak pandang, cuaca, awan, suhu, QNH, tren) beserta kategori penerbangan VFR/MVFR/IFR/LIFR. Tampil di kartu bandara, daftar, titik warna di label peta, dan awan hujan/petir 3D di atas bandara yang sedang hujan.
 - Jam besar per zona di bagian atas; klik untuk memfilter dan memusatkan peta ke zona tersebut.
+- Filter **Ada METAR** untuk menampilkan hanya bandara yang punya laporan cuaca terbaru (bisa digabung dengan filter zona dan pencarian).
+- **Bandingkan dua bandara**: buka kartu bandara → *Bandingkan dengan bandara lain* → pilih bandara kedua. Panel menampilkan jam lokal keduanya, selisih jam, jarak (km/NM), arah, perkiraan lama terbang dan jam tiba, serta jam terbenam; peta menggambar busur rute 3D.
 - Pencarian berdasarkan kode IATA, ICAO, nama bandara, kota, atau provinsi.
 - Kontrol peta: seret untuk geser, klik kanan / dua jari untuk memutar, scroll / cubit untuk zoom, tombol **Putar** untuk rotasi otomatis.
 - Mode terang (siang) dan gelap (malam) mengikuti pengaturan sistem; tampilan responsif untuk ponsel.
@@ -39,6 +41,21 @@ Menjalankan secara lokal: `python3 scripts/fetch_metar.py data/metar.json`, lalu
 
 Data METAR di dashboard hanya untuk informasi, bukan pengganti briefing meteorologi penerbangan resmi.
 
+## Pemeriksaan otomatis
+Workflow `.github/workflows/ci.yml` (**Checks**) berjalan di setiap pull request dan setiap push ke branch selain `main`:
+- semua skrip Python bisa dikompilasi;
+- `index.html` sudah di-build ulang dari `src/` dan `data/` (jika lupa, jalankan `python3 scripts/build.py` lalu commit);
+- uji unit Python di `tests/` (parser METAR, deteksi tantangan Cloudflare, NOAA per kelompok, pembuat daftar bandara, validasi `data/airports.json`);
+- `tests/check_page.mjs`: semua `<script>` di halaman bisa di-parse, dan fungsi halaman (zona waktu, terbit/terbenam, decode METAR, jarak/arah) memberi hasil yang benar;
+- file workflow valid.
+
+Menjalankan secara lokal:
+```bash
+python3 scripts/build.py
+python3 -m unittest discover -s tests -v
+node tests/check_page.mjs index.html
+```
+
 ## Struktur
 - `src/dashboard.html` – template halaman (HTML, CSS, JS, adegan 3D, serta data bandara, gunung, dan sungai).
 - `data/airports.json` – daftar bandara (IATA, ICAO, nama, kota, provinsi, koordinat, zona waktu, hub), dibuat oleh `scripts/prepare_airports.py`.
@@ -48,6 +65,8 @@ Data METAR di dashboard hanya untuk informasi, bukan pengganti briefing meteorol
 - `scripts/fetch_metar.py` – mengambil METAR (BMKG, cadangan NOAA AWC) ke `data/metar.json`.
 - `.github/workflows/metar.yml` – jadwal 30 menit: ambil METAR, build, deploy ke GitHub Pages.
 - `scripts/prepare_airports.py` – membuat/memperbarui `data/airports.json` dari data OurAirports.
+- `tests/` – uji unit Python dan pemeriksaan halaman (`check_page.mjs`).
+- `.github/workflows/ci.yml` – pemeriksaan otomatis untuk PR.
 - `scripts/prepare_provinces.py` – membuat `data/provinces.json` dari GeoJSON sumber.
 
 Setelah mengubah template atau data, jalankan:
