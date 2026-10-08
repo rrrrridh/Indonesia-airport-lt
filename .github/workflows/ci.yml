@@ -49,4 +49,6 @@ jobs:
         run: node tests/check_page.mjs index.html
 
       - name: Workflow files are valid YAML
-        run: python3 -c "import sys, yaml; [yaml.safe_load(open(f)) for f in sys.argv[1:]]" .github/workflows/*.yml
+        run: |
+          python3 -m pip install --quiet pyyaml
+          python3 -c "import sys, yaml; [yaml.safe_load(open(f)) for f in sys.argv[1:]]" .github/workflows/*.yml
