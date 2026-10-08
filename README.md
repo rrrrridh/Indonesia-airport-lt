@@ -15,7 +15,7 @@ Dashboard peta 3D bergaya kartun yang menampilkan lokasi bandara Indonesia (kode
 - Klik bandara (di peta atau di daftar) untuk terbang ke lokasinya dan melihat jam detik, tanggal, bagian hari, dan selisih dengan jam perangkat Anda.
 - **Matahari terbit & terbenam** untuk setiap bandara (dihitung dengan rumus astronomi NOAA/SunCalc): tampil di daftar, kartu detail (beserta hitung mundur), dan di label peta lewat tombol **Label sunset**.
 - **Bayangan siang/malam**: sisi Indonesia yang sedang malam diberi bayangan gelap, dengan garis kuning sebagai batas siang/malam (terminator) yang bergerak sesuai posisi matahari sebenarnya. Bisa dimatikan dengan tombol **Siang/malam**.
-- **METAR per 30 menit**: laporan cuaca bandara (METAR/SPECI) dari BMKG, diterjemahkan ke bahasa Indonesia (angin, jarak pandang, cuaca, awan, suhu, QNH, tren) beserta kategori penerbangan VFR/MVFR/IFR/LIFR. Tampil di kartu bandara, daftar, titik warna di label peta, dan awan hujan/petir 3D di atas bandara yang sedang hujan.
+- **METAR per 30 menit**: laporan cuaca bandara (METAR/SPECI) dari NOAA Aviation Weather Center (laporan stasiun BMKG), diterjemahkan ke bahasa Indonesia (angin, jarak pandang, cuaca, awan, suhu, QNH, tren) beserta kategori penerbangan VFR/MVFR/IFR/LIFR. Tampil di kartu bandara, daftar, titik warna di label peta, dan awan hujan/petir 3D di atas bandara yang sedang hujan.
 - Jam besar per zona di bagian atas; klik untuk memfilter dan memusatkan peta ke zona tersebut.
 - Pencarian berdasarkan kode IATA, ICAO, nama bandara, kota, atau provinsi.
 - Kontrol peta: seret untuk geser, klik kanan / dua jari untuk memutar, scroll / cubit untuk zoom, tombol **Putar** untuk rotasi otomatis.
@@ -26,14 +26,14 @@ Cukup buka `index.html` di browser (butuh koneksi internet untuk memuat Three.js
 
 ## METAR otomatis (GitHub Actions + GitHub Pages)
 Workflow `.github/workflows/metar.yml` berjalan **setiap 30 menit**:
-1. `scripts/fetch_metar.py` mengambil METAR terbaru untuk ke-65 bandara dari portal penerbangan BMKG (`web-aviation.bmkg.go.id`). Stasiun yang tidak didapat dari BMKG diisi dari NOAA Aviation Weather Center (`aviationweather.gov`), yang mendistribusikan laporan BMKG yang sama. Sumber tiap stasiun dicatat di data.
+1. `scripts/fetch_metar.py` mengambil METAR terbaru ke-65 bandara. Sumber utamanya adalah portal penerbangan BMKG (`web-aviation.bmkg.go.id`), dengan cadangan NOAA Aviation Weather Center (`aviationweather.gov`) yang menyebarkan laporan stasiun BMKG yang sama. **Saat ini portal BMKG dilindungi tantangan anti-bot Cloudflare**, sehingga skrip otomatis tidak bisa mengaksesnya dan seluruh data berasal dari NOAA (sekitar 27 dari 65 bandara punya laporan dalam 3 jam terakhir). Skrip tidak mencoba melewati tantangan itu. Untuk data langsung dari BMKG, minta akses resmi (API atau langganan data) ke BMKG. Sumber tiap stasiun dicatat di `data/metar.json`.
 2. Hasilnya (`data/metar.json`) dipublikasikan bersama `index.html` ke GitHub Pages. Halaman memeriksa file baru setiap 5 menit.
 
 Cara mengaktifkan:
 - Gabungkan branch ini ke `main` (jadwal GitHub Actions hanya berjalan di branch default).
 - Buka **Settings → Pages → Source** dan pilih **GitHub Actions**. (GitHub Pages untuk repo privat butuh paket berbayar.)
 - Jalankan sekali lewat **Actions → METAR update & deploy → Run workflow**, lalu cek log langkah *Fetch METAR*. Log menunjukkan berapa stasiun yang didapat dari BMKG dan dari NOAA.
-- BMKG tidak punya API resmi yang terdokumentasi, jadi permintaannya bisa diatur lewat **Settings → Secrets and variables → Actions → Variables** tanpa mengubah kode: `BMKG_METAR_URL`, `BMKG_METAR_FIELD`, `BMKG_METAR_METHOD` (lihat keterangan di `scripts/fetch_metar.py`).
+- Jika BMKG kelak memberi akses resmi (mis. alamat API atau kunci), alamatnya bisa diatur lewat **Settings → Secrets and variables → Actions → Variables**: `BMKG_METAR_URL`, `BMKG_METAR_FIELD`, `BMKG_METAR_METHOD` (lihat keterangan di `scripts/fetch_metar.py`).
 
 Menjalankan secara lokal: `python3 scripts/fetch_metar.py data/metar.json`, lalu buka lewat server lokal (`python3 -m http.server`), karena browser memblokir `fetch` dari `file://`.
 
