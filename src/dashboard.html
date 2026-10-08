@@ -158,6 +158,13 @@ body {
   font-family: var(--font-display); font-weight: 700; font-size: 12px; letter-spacing: .02em;
 }
 .tag .code i { font-style: normal; font-weight: 600; opacity: .75; }
+.catdot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid var(--ink); flex: none; }
+.catdot.VFR { background: #22a35a; } .catdot.MVFR { background: #2f6fe0; } .catdot.IFR { background: #e0393e; } .catdot.LIFR { background: #b52bc4; }
+.tag .catdot:not([class*="FR"]) { display: none; }
+.row-wx { font-size: 11px; font-weight: 800; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 5px; }
+.metar-status { font-size: 11px; font-weight: 800; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+.metar-status .live { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex: none; }
+.metar-status.ok .live { background: #22a35a; box-shadow: 0 0 0 3px color-mix(in srgb, #22a35a 30%, transparent); }
 .tag time { font-family: var(--font-display); font-weight: 700; font-size: 13px; font-variant-numeric: tabular-nums; }
 .tag:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 .tag.sel { transform-origin: 50% 100%; z-index: 5; }
@@ -229,6 +236,19 @@ body {
 .sun-tile span { font-size: 11px; font-weight: 900; color: var(--muted); display: flex; align-items: center; gap: 4px; }
 .sun-tile b { font-family: var(--font-display); font-weight: 700; font-size: 20px; line-height: 1.1; font-variant-numeric: tabular-nums; }
 .sun-note { grid-column: 1 / -1; font-size: 12px; font-weight: 800; color: var(--muted); }
+.wx { margin-top: 8px; border: 2.5px solid var(--ink); border-radius: 12px; overflow: hidden; }
+.wx-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 4px 8px; background: var(--surface-2); border-bottom: 2px solid var(--ink); font-size: 11px; font-weight: 900; }
+.wx-head .muted { color: var(--muted); font-weight: 800; }
+.wx-grid { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 1px 10px; padding: 6px 8px; margin: 0; font-size: 12px; }
+.wx-grid dt { color: var(--muted); font-weight: 800; }
+.wx-grid dd { margin: 0; font-weight: 800; min-width: 0; }
+.wx-raw { font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; font-size: 11px; line-height: 1.35; padding: 6px 8px; border-top: 2px dashed var(--muted); word-break: break-word; color: var(--fg); }
+.wx-src { padding: 0 8px 6px; font-size: 10px; font-weight: 800; color: var(--muted); }
+.wx-empty { padding: 8px; font-size: 12px; font-weight: 700; color: var(--muted); }
+.cat { display: inline-block; font-family: var(--font-display); font-weight: 700; font-size: 11px; line-height: 15px; padding: 0 6px; border-radius: 6px; border: 2px solid var(--ink); color: #fff; }
+.cat.VFR { background: #22a35a; } .cat.MVFR { background: #2f6fe0; } .cat.IFR { background: #e0393e; } .cat.LIFR { background: #b52bc4; }
+.stale { color: #d9622b; }
+.card { max-height: calc(100% - 20px); overflow-y: auto; }
 .card-diff { margin-top: 6px; font-size: 12px; font-weight: 700; background: var(--surface-2); border-radius: 10px; padding: 6px 8px; }
 .pill {
   display: inline-block; font-family: var(--font-display); font-weight: 700; font-size: 12px;
@@ -380,6 +400,7 @@ body {
             <div class="sun-tile set"><span><svg class="ico-sunset" width="14" height="12" viewBox="0 0 14 12" aria-hidden="true"><path d="M2.5 8.5a4.5 4.5 0 0 1 9 0" fill="#ff9a3c" stroke="#23305a" stroke-width="1.4"/><path d="M1 10.5h12M7 1v2.5M5.5 2.5 7 4l1.5-1.5" fill="none" stroke="#23305a" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Terbenam</span><b id="c-set">--:--</b></div>
             <div class="sun-note" id="c-sunnote"></div>
           </div>
+          <div class="wx" id="c-wx"></div>
           <div class="card-diff"><span class="pill" id="c-zone"></span> <span id="c-zname"></span><br><span id="c-diff" style="color:var(--muted)"></span></div>
         </div>
       </div>
@@ -395,6 +416,8 @@ body {
           <div class="legend-row"><svg width="16" height="14" viewBox="0 0 16 14"><rect x="7" y="9" width="2" height="4" fill="#8a5a34"/><circle cx="8" cy="6" r="5" fill="#3fae5a" stroke="#23305a" stroke-width="1.6"/></svg>Hutan</div>
           <div class="legend-row"><span class="sw night"></span>Sisi malam</div>
           <div class="legend-row"><span class="sw line"></span>Garis siang/malam</div>
+          <div class="legend-row"><span class="catdot VFR"></span>VFR <span class="catdot MVFR"></span>MVFR</div>
+          <div class="legend-row"><span class="catdot IFR"></span>IFR <span class="catdot LIFR"></span>LIFR</div>
           <div class="legend-row"><svg width="16" height="14" viewBox="0 0 16 14"><rect x="1" y="2" width="14" height="10" rx="3" fill="#4cc3f1" stroke="#23305a" stroke-width="1.6"/><path d="M3 7c1.5-1.5 3 1.5 4.5 0s3 1.5 4.5 0" fill="none" stroke="#fff" stroke-width="1.4" stroke-linecap="round"/></svg>Laut</div>
         </div>
       </div>
@@ -404,6 +427,7 @@ body {
     <aside class="roster" aria-label="Daftar bandara">
       <div class="roster-head">
         <div class="roster-title"><h2>Bandara</h2><span id="count"></span></div>
+        <div class="metar-status" id="metar-status"><span class="live"></span><span id="metar-status-text">Memuat METAR…</span></div>
         <input id="q" type="search" placeholder="Cari IATA, ICAO, nama, kota…" autocomplete="off" aria-label="Cari bandara">
         <div class="filters" role="group" aria-label="Filter zona">
           <button type="button" class="btn" data-filter="ALL" aria-pressed="true" id="f-all">Semua</button>
@@ -416,7 +440,7 @@ body {
     </aside>
   </section>
 
-  <p class="foot">Batas provinsi: Peta Dasar BAKOSURTANAL (disederhanakan). Posisi gunung, sungai, dan hutan bersifat ilustratif. Jam terbit/terbenam dihitung dengan rumus astronomi (akurasi sekitar ±1 menit, di permukaan laut). Indonesia tidak memakai waktu musim panas, jadi selisih antarzona selalu tetap: WIB +7, WITA +8, WIT +9 jam dari UTC.</p>
+  <p class="foot">Batas provinsi: Peta Dasar BAKOSURTANAL (disederhanakan). Posisi gunung, sungai, dan hutan bersifat ilustratif. METAR dari BMKG (cadangan: NOAA Aviation Weather Center), diperbarui tiap 30 menit; hanya untuk informasi, bukan pengganti briefing penerbangan resmi. Jam terbit/terbenam dihitung dengan rumus astronomi (akurasi sekitar ±1 menit, di permukaan laut). Indonesia tidak memakai waktu musim panas, jadi selisih antarzona selalu tetap: WIB +7, WITA +8, WIT +9 jam dari UTC.</p>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -626,6 +650,70 @@ function sunNote(sun, now) {
   if (now < sun.rise) return `Matahari terbit ${durText(sun.rise - now)} lagi`;
   if (now < sun.set) return `Matahari terbenam ${durText(sun.set - now)} lagi`;
   return `Matahari sudah terbenam ${durText(now - sun.set)} lalu`;
+}
+
+/* ---------- METAR: decode the coded report into plain Indonesian ---------- */
+const WX_PHEN = { DZ: "gerimis", RA: "hujan", SN: "salju", GR: "hujan es", GS: "hujan es kecil", BR: "kabut tipis", FG: "kabut",
+  FU: "asap", VA: "abu vulkanik", DU: "debu", SA: "pasir", HZ: "udara kabur (haze)", SQ: "angin kencang (squall)", FC: "puting beliung", PO: "pusaran debu", UP: "presipitasi" };
+const WX_RE = /^([+-]|VC)?(MI|BC|PR|DR|BL|SH|TS|FZ)?((?:DZ|RA|SN|SG|PL|GR|GS|UP|BR|FG|FU|VA|DU|SA|HZ|PO|SQ|FC|SS|DS)*)$/;
+function wxText(code) {
+  const m = code.match(WX_RE);
+  if (!m) return code;
+  const [, pre, desc, ph] = m;
+  const phen = (ph.match(/../g) || []).map(p => WX_PHEN[p] || p);
+  let t;
+  if (desc === "TS") t = phen.length ? `badai petir dengan ${phen.join(" & ")}` : "badai petir";
+  else if (desc === "SH") t = `${phen.join(" & ") || "hujan"} lokal (shower)`;
+  else if (desc === "FZ") t = `${phen.join(" & ")} membeku`;
+  else t = phen.join(" & ") || code;
+  if (pre === "-") t += " ringan"; else if (pre === "+") t += " lebat"; else if (pre === "VC") t += " di sekitar bandara";
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
+const COVER = { FEW: "Sedikit", SCT: "Tersebar", BKN: "Banyak", OVC: "Tertutup", VV: "Langit tak terlihat" };
+function decodeMetar(raw) {
+  const tok = raw.replace(/=\s*$/, "").trim().split(/\s+/);
+  const r = { wx: [], clouds: [], trend: "" };
+  let i = 0;
+  while (i < tok.length && /^(METAR|SPECI|COR|AUTO|W[A-Z]{3}|\d{6}Z)$/.test(tok[i])) i++;
+  for (; i < tok.length; i++) {
+    const t = tok[i];
+    let m;
+    if (/^(NOSIG|TEMPO|BECMG|RMK)$/.test(t)) { r.trend = tok.slice(i).join(" "); break; }
+    if ((m = t.match(/^(\d{3}|VRB)(\d{2,3})(?:G(\d{2,3}))?(KT|MPS)$/))) { r.wind = { dir: m[1], spd: +m[2], gust: m[3] ? +m[3] : null, unit: m[4] === "KT" ? "kt" : "m/s" }; continue; }
+    if (/^\d{3}V\d{3}$/.test(t)) { if (r.wind) r.wind.vary = t.replace("V", "°–") + "°"; continue; }
+    if (t === "CAVOK") { r.vis = 10000; r.cavok = true; continue; }
+    if (/^\d{4}$/.test(t) && r.vis == null) { r.vis = +t; continue; }
+    if ((m = t.match(/^(FEW|SCT|BKN|OVC|VV)(\d{3}|\/\/\/)(CB|TCU|\/\/\/)?$/))) { r.clouds.push({ cov: m[1], ft: m[2] === "///" ? null : +m[2] * 100, type: m[3] && m[3] !== "///" ? m[3] : "" }); continue; }
+    if (/^(NSC|SKC|CLR|NCD)$/.test(t)) { r.nsc = true; continue; }
+    if ((m = t.match(/^(M?\d{2})\/(M?\d{2})?$/))) { const n = v => v ? +v.replace("M", "-") : null; r.temp = n(m[1]); r.dew = n(m[2]); continue; }
+    if ((m = t.match(/^Q(\d{4})$/))) { r.qnh = +m[1]; continue; }
+    if ((m = t.match(/^A(\d{4})$/))) { r.qnh = Math.round(+m[1] / 100 * 33.8639); continue; }
+    if (t.length >= 2 && t !== "NSW" && WX_RE.test(t)) r.wx.push(t);
+  }
+  const ceilings = r.clouds.filter(c => /BKN|OVC|VV/.test(c.cov) && c.ft != null).map(c => c.ft);
+  const ceiling = ceilings.length ? Math.min(...ceilings) : Infinity;
+  const sm = r.vis != null ? r.vis / 1609.34 : Infinity;
+  r.cat = ceiling < 500 || sm < 1 ? "LIFR" : ceiling < 1000 || sm < 3 ? "IFR" : ceiling <= 3000 || sm <= 5 ? "MVFR" : "VFR";
+  r.rain = r.wx.some(w => !w.startsWith("VC") && /RA|DZ|TS|SH/.test(w));
+  r.thunder = r.wx.some(w => !w.startsWith("VC") && w.includes("TS"));
+  return r;
+}
+const fmtNum = n => n.toLocaleString("id-ID");
+function windText(w, short) {
+  if (!w) return "–";
+  if (w.spd === 0) return "Tenang";
+  const dir = w.dir === "VRB" ? (short ? "VRB" : "Arah berubah-ubah") : `${w.dir}°`;
+  return `${dir} ${w.spd}${w.gust ? "G" + w.gust : ""} ${w.unit}${!short && w.vary ? ` (bervariasi ${w.vary})` : ""}`;
+}
+function visText(v, short) {
+  if (v == null) return "–";
+  if (v >= 9999) return short ? "≥10 km" : "10 km atau lebih";
+  return v >= 5000 ? `${fmtNum(v / 1000)} km` : `${fmtNum(v)} m`;
+}
+function cloudText(d) {
+  if (d.cavok) return "CAVOK (cuaca baik, tidak ada awan penting)";
+  if (!d.clouds.length) return d.nsc ? "Tidak ada awan penting" : "–";
+  return d.clouds.map(c => `${COVER[c.cov]} ${c.ft != null ? fmtNum(c.ft) + " ft" : ""}${c.type === "CB" ? " · Cumulonimbus" : c.type === "TCU" ? " · Towering cumulus" : ""}`).join("; ");
 }
 
 /* =====================  3D SCENE  ===================== */
@@ -900,7 +988,7 @@ function buildScene() {
     const ring = new THREE.Mesh(ringGeo, mats.ring); ring.rotation.x = -Math.PI / 2; ring.position.y = 0.02; ring.visible = false;
     g.add(post, ball, ring);
     scene.add(g); pickables.push(ball);
-    pinObjs.set(ap.iata, { group: g, ball, ring, base: 0.45, phase: rand() * 6.28, rad });
+    pinObjs.set(ap.iata, { group: g, ball, ring, base: 0.45, phase: rand() * 6.28, rad, fx: null });
   });
 
   // Puffy clouds drifting over the archipelago
@@ -931,6 +1019,43 @@ function buildScene() {
   controls.autoRotateSpeed = 0.6;
   controls.addEventListener("start", () => { flight = null; userMoved = true; });
   applyTheme();
+}
+
+/* ---------- Weather over airports (from METAR) ---------- */
+const fxMats = {};
+const weatherFx = [];
+function setPinWeather(ap) {
+  const pin = pinObjs.get(ap.iata);
+  if (!pin) return;
+  if (pin.fx) { pin.group.remove(pin.fx); weatherFx.splice(weatherFx.indexOf(pin.fx), 1); pin.fx = null; }
+  const d = ap.wx && ap.wx.d;
+  if (!d || !d.rain) return;
+  if (!fxMats.cloud) {
+    fxMats.cloud = toon(0x8a94ab);
+    fxMats.drop = new THREE.MeshBasicMaterial({ color: 0x4aa8ff });
+    fxMats.bolt = new THREE.MeshBasicMaterial({ color: 0xffd23f });
+    fxMats.puff = new THREE.IcosahedronGeometry(1, 0);
+    fxMats.dropGeo = new THREE.CylinderGeometry(0.012, 0.012, 0.09, 4);
+    fxMats.boltGeo = facet(new THREE.ConeGeometry(0.05, 0.32, 3));
+  }
+  const fx = new THREE.Group();
+  fx.position.y = 1.05;
+  [[-0.14, 0, 0.16], [0.02, 0.05, 0.2], [0.17, 0, 0.15]].forEach(([x, y, r]) => {
+    const m = new THREE.Mesh(fxMats.puff, fxMats.cloud); m.position.set(x, y, 0); m.scale.set(r, r * 0.8, r); m.castShadow = true; fx.add(m);
+  });
+  fx.userData.drops = [];
+  for (let i = 0; i < 5; i++) {
+    const dr = new THREE.Mesh(fxMats.dropGeo, fxMats.drop);
+    dr.position.set(-0.18 + i * 0.09, -0.15, (i % 2) * 0.06 - 0.03);
+    dr.userData.phase = i / 5;
+    fx.add(dr); fx.userData.drops.push(dr);
+  }
+  if (d.thunder) {
+    const bolt = new THREE.Mesh(fxMats.boltGeo, fxMats.bolt);
+    bolt.rotation.z = Math.PI + 0.35; bolt.position.set(0.04, -0.22, 0.05);
+    fx.add(bolt); fx.userData.bolt = bolt;
+  }
+  pin.group.add(fx); pin.fx = fx; weatherFx.push(fx);
 }
 
 /* ---------- Day/night line (terminator) ---------- */
@@ -1041,11 +1166,11 @@ AIRPORTS.forEach(ap => {
   const b = document.createElement("button");
   b.type = "button";
   b.className = `tag ${ZONES[ap.zone].cls}`;
-  b.innerHTML = `<span class="code">${ap.iata}<i>/${ap.icao}</i></span><svg class="ico-sunset" width="14" height="12" viewBox="0 0 14 12" aria-hidden="true"><path d="M2.5 8.5a4.5 4.5 0 0 1 9 0" fill="#ff9a3c" stroke="#23305a" stroke-width="1.4"/><path d="M1 10.5h12M7 1v2.5M5.5 2.5 7 4l1.5-1.5" fill="none" stroke="#23305a" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg><time>--:--</time>`;
+  b.innerHTML = `<span class="code">${ap.iata}<i>/${ap.icao}</i></span><svg class="ico-sunset" width="14" height="12" viewBox="0 0 14 12" aria-hidden="true"><path d="M2.5 8.5a4.5 4.5 0 0 1 9 0" fill="#ff9a3c" stroke="#23305a" stroke-width="1.4"/><path d="M1 10.5h12M7 1v2.5M5.5 2.5 7 4l1.5-1.5" fill="none" stroke="#23305a" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="catdot"></span><time>--:--</time>`;
   b.setAttribute("aria-label", `${ap.iata} / ${ap.icao}, Bandara ${ap.name}`);
   b.addEventListener("click", () => select(ap.iata, false));
   labelsEl.appendChild(b);
-  tagEls.set(ap.iata, { el: b, time: b.querySelector("time"), w: 0, h: 0 });
+  tagEls.set(ap.iata, { el: b, time: b.querySelector("time"), dot: b.querySelector(".catdot"), w: 0, h: 0 });
 });
 SEAS.forEach(([name, lon, lat]) => {
   const d = document.createElement("div");
@@ -1069,7 +1194,7 @@ function placeLabels(w, h) {
     const t = tagEls.get(ap.iata), pin = pinObjs.get(ap.iata);
     if (!labelsOn && ap.iata !== selected) continue;
     if (!t.w) { t.w = t.el.offsetWidth; t.h = t.el.offsetHeight; }
-    v3.copy(pin.group.position); v3.y += pin.ball.position.y + pin.rad + 0.04;
+    v3.copy(pin.group.position); v3.y += pin.fx ? 1.3 : pin.ball.position.y + pin.rad + 0.04;  // sit above any rain cloud
     v3.project(camera);
     if (v3.z > 1) continue;
     const sx = (v3.x + 1) / 2 * w, sy = (1 - v3.y) / 2 * h;
@@ -1113,7 +1238,7 @@ function updateHover() {
   const d = pick(cx, cy);
   if (!d) { tipEl.hidden = true; canvas.style.cursor = ""; return; }
   let html;
-  if (d.kind === "airport") html = `<b>${d.ap.iata} / ${d.ap.icao}</b> <small>${esc(d.ap.city)} · terbenam ${zoneHM(d.ap.zone, airportSun(d.ap, Date.now()).set)}</small>`;
+  if (d.kind === "airport") html = `<b>${d.ap.iata} / ${d.ap.icao}</b> <small>${esc(d.ap.city)} · terbenam ${zoneHM(d.ap.zone, airportSun(d.ap, Date.now()).set)}${d.ap.wx ? " · " + d.ap.wx.d.cat : ""}</small>`;
   else if (d.kind === "mount") html = `<b>${esc(d.name)}</b> <small>${d.elev.toLocaleString("id-ID")} mdpl</small>`;
   else if (d.kind === "river") html = `<b>${esc(d.name)}</b>`;
   else html = `<b>${esc(d.name)}</b> <small>${d.zone} · UTC+${ZONES[d.zone].offset}</small>`;
@@ -1175,6 +1300,10 @@ function frame(now) {
       pf.position.set(Math.sin(k * 6 + pf.userData.phase * 9) * 0.06, pf.userData.top + k * 0.7, 0);
       pf.scale.setScalar(0.6 + k * 1.6);
     });
+    weatherFx.forEach(fx => {
+      fx.userData.drops.forEach(dr => { const k = (t * 1.3 + dr.userData.phase) % 1; dr.position.y = -0.12 - k * 0.42; dr.visible = k < 0.9; });
+      if (fx.userData.bolt) fx.userData.bolt.visible = (t * 1.7 + fx.position.x) % 3 < 0.18;
+    });
     clouds.forEach(c => {
       c.position.x += c.userData.speed * dt;
       if (c.position.x > 30) c.position.x = -30;
@@ -1207,12 +1336,12 @@ AIRPORTS.forEach(ap => {
   li.tabIndex = 0;
   li.dataset.search = `${ap.iata} ${ap.icao} ${ap.name} ${ap.city} ${ap.prov} ${ap.zone}`.toLowerCase();
   li.innerHTML = `<span class="row-code"><b>${ap.iata}</b><i>${ap.icao}</i></span>
-    <span style="min-width:0"><div class="row-name">${esc(ap.name)}</div><div class="row-city">${esc(ap.city)} · ${esc(ap.prov)}</div></span>
+    <span style="min-width:0"><div class="row-name">${esc(ap.name)}</div><div class="row-city">${esc(ap.city)} · ${esc(ap.prov)}</div><div class="row-wx" hidden></div></span>
     <span class="row-time"><time>--:--:--</time><small></small><small class="row-sun"><svg class="ico-sunset" width="14" height="12" viewBox="0 0 14 12" aria-hidden="true"><path d="M2.5 8.5a4.5 4.5 0 0 1 9 0" fill="#ff9a3c" stroke="#23305a" stroke-width="1.4"/><path d="M1 10.5h12M7 1v2.5M5.5 2.5 7 4l1.5-1.5" fill="none" stroke="#23305a" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg><span></span></small></span>`;
   li.addEventListener("click", () => select(ap.iata, true));
   li.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); select(ap.iata, true); } });
   listEl.appendChild(li);
-  ap.row = li; ap.rowTime = li.querySelector("time"); ap.rowSmall = li.querySelector("small"); ap.rowSun = li.querySelector(".row-sun span");
+  ap.row = li; ap.rowTime = li.querySelector("time"); ap.rowSmall = li.querySelector("small"); ap.rowSun = li.querySelector(".row-sun span"); ap.rowWx = li.querySelector(".row-wx");
 });
 const emptyEl = document.createElement("li");
 emptyEl.className = "empty";
@@ -1236,6 +1365,7 @@ function select(code, fromList) {
   document.getElementById("c-zone").textContent = ap.zone;
   document.getElementById("c-zname").textContent = `${ZONES[ap.zone].name} (UTC+${ZONES[ap.zone].offset})`;
   document.getElementById("c-diff").textContent = diffText(ap.zone);
+  renderWx(ap);
   tick();
   const pin = pinObjs.get(code);
   if (pin && controls) { userMoved = true; flyTo(pin.group.position.clone(), 12); }
@@ -1310,6 +1440,79 @@ Object.keys(ZONES).forEach(z => {
   document.querySelector(`[data-count="${z}"]`).textContent = AIRPORTS.filter(a => a.zone === z).length;
 });
 
+/* ---------- METAR feed (data/metar.json, refreshed every 30 minutes by GitHub Actions) ---------- */
+const METAR_URL = "data/metar.json";
+const METAR_POLL_MS = 5 * 60 * 1000;   // look for a fresh file every 5 minutes
+let metarFeed = { ok: false, generated: null, count: 0 };
+const wxEl = document.getElementById("c-wx");
+const statusEl = document.getElementById("metar-status");
+const statusText = document.getElementById("metar-status-text");
+
+async function loadMetar() {
+  let doc = null;
+  try {
+    const res = await fetch(`${METAR_URL}?t=${Date.now()}`, { cache: "no-store" });
+    if (res.ok) doc = await res.json();
+  } catch (e) { /* offline, blocked, or opened from disk */ }
+  if (!doc) { if (!metarFeed.ok) renderMetarStatus(); return; }
+  const stations = doc.stations || {};
+  metarFeed = { ok: true, generated: Date.parse(doc.generated), count: 0 };
+  AIRPORTS.forEach(ap => {
+    const st = stations[ap.icao];
+    ap.wx = st && st.raw ? { raw: st.raw, obs: Date.parse(st.obs), source: st.source || "BMKG", d: decodeMetar(st.raw) } : null;
+    if (ap.wx) metarFeed.count++;
+    const d = ap.wx && ap.wx.d;
+    ap.rowWx.hidden = !d;
+    if (d) {
+      const parts = [d.temp != null ? `${d.temp}°C` : null, windText(d.wind, true), visText(d.vis, true), d.wx.length ? wxText(d.wx[0]) : null].filter(Boolean);
+      ap.rowWx.innerHTML = `<span class="catdot ${d.cat}"></span>${d.cat} · ${esc(parts.join(" · "))}`;
+      ap.rowWx.title = ap.wx.raw;
+    }
+    const t = tagEls.get(ap.iata);
+    t.dot.className = `catdot${d ? " " + d.cat : ""}`;
+    t.w = 0;
+    setPinWeather(ap);
+  });
+  renderMetarStatus();
+  if (selected) renderWx(AIRPORTS.find(a => a.iata === selected));
+}
+function renderMetarStatus() {
+  statusEl.classList.toggle("ok", metarFeed.ok);
+  statusText.textContent = metarFeed.ok
+    ? `METAR ${metarFeed.count}/${AIRPORTS.length} bandara · diperbarui ${zoneHM("WIB", metarFeed.generated)} WIB`
+    : "METAR tidak dapat dimuat di tampilan ini";
+}
+function renderWx(ap) {
+  if (!ap.wx) {
+    wxEl.innerHTML = `<div class="wx-empty">${metarFeed.ok ? "Belum ada METAR terbaru untuk bandara ini." : "Data METAR belum dapat dimuat."}</div>`;
+    return;
+  }
+  const { d, raw, source } = ap.wx;
+  const rows = [
+    ["Angin", windText(d.wind)],
+    ["Jarak pandang", d.cavok ? "10 km atau lebih" : visText(d.vis)],
+    ["Cuaca", d.wx.length ? d.wx.map(wxText).join(", ") : "Tidak ada cuaca signifikan"],
+    ["Awan", cloudText(d)],
+    ["Suhu", d.temp != null ? `${d.temp}°C${d.dew != null ? ` · titik embun ${d.dew}°C` : ""}` : "–"],
+    ["QNH", d.qnh ? `${d.qnh} hPa` : "–"],
+  ];
+  if (d.trend) rows.push(["Tren", d.trend]);
+  wxEl.innerHTML = `
+    <div class="wx-head"><span>${raw.startsWith("SPECI") ? "SPECI" : "METAR"} <span class="cat ${d.cat}">${d.cat}</span></span>
+      <span class="muted" id="c-wx-age"></span></div>
+    <dl class="wx-grid">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join("")}</dl>
+    <div class="wx-raw">${esc(raw)}</div>
+    <div class="wx-src">Sumber: ${esc(source)}</div>`;
+  updateWxAge(ap, Date.now());
+}
+function updateWxAge(ap, now) {
+  const el = document.getElementById("c-wx-age");
+  if (!el || !ap.wx) return;
+  const age = now - ap.wx.obs;
+  el.textContent = `${zoneHM(ap.zone, ap.wx.obs)} ${ap.zone} · ${durText(age)} lalu`;
+  el.classList.toggle("stale", age > 90 * 60000);
+}
+
 /* ---------- Clock tick ---------- */
 const youTime = document.getElementById("you-time");
 const offMin = -new Date().getTimezoneOffset();
@@ -1348,11 +1551,14 @@ function tick() {
     document.getElementById("c-rise").textContent = zoneHM(ap.zone, sun.rise);
     document.getElementById("c-set").textContent = zoneHM(ap.zone, sun.set);
     document.getElementById("c-sunnote").textContent = sunNote(sun, now);
+    updateWxAge(ap, now);
   }
 }
 tick();
 applyFilter();
 setInterval(tick, 1000);
+loadMetar();
+setInterval(loadMetar, METAR_POLL_MS);
 
 window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", applyTheme);
 new MutationObserver(applyTheme).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
