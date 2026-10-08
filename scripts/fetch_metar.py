@@ -26,12 +26,11 @@ import urllib.parse
 import urllib.request
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-# BMKG's portal answers 403 to anything that does not look like a browser, so send browser-like headers.
+# Plain, honest request headers. BMKG's portal sits behind a Cloudflare bot challenge, which an
+# automated client cannot (and should not try to) pass; see from_bmkg().
 BROWSER_HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36",
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-    "Accept-Language": "id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7",
-    "Upgrade-Insecure-Requests": "1",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "id-ID,id;q=0.9,en;q=0.7",
 }
 UA = "JamBandaraNusantara/1.0 (+https://github.com/rrrrridh/Indonesia-airport-lt)"
 BMKG_URL = os.environ.get("BMKG_METAR_URL") or "https://web-aviation.bmkg.go.id/web/metar_speci.php"
@@ -60,8 +59,7 @@ class Browser:
         self.opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(CookieJar()))
 
     def request(self, url, data=None, headers=None, timeout=40):
-        h = dict(BROWSER_HEADERS)
-        h.update(headers or {})
+        h = {"User-Agent": UA, **BROWSER_HEADERS, **(headers or {})}
         req = urllib.request.Request(url, data=data, headers=h)
         try:
             with self.opener.open(req, timeout=timeout) as r:
@@ -101,6 +99,11 @@ def parse_reports(text, wanted, now):
     return out
 
 
+def is_bot_challenge(status, headers, body):
+    server = str(dict(headers).get("server") or dict(headers).get("Server") or "").lower()
+    return status in (403, 429, 503) and ("cloudflare" in server or "just a moment" in body.lower()[:2000])
+
+
 def describe(status, headers, body):
     keep = {k.lower(): v for k, v in dict(headers).items()}
     hints = {k: keep[k] for k in ("server", "via", "cf-ray", "x-cache", "x-served-by", "content-type") if k in keep}
@@ -136,6 +139,11 @@ def from_bmkg(icaos, now):
 
     status, headers, page = browser.request(BMKG_URL)
     print(f"BMKG GET {BMKG_URL}: {describe(status, headers, page)}", file=sys.stderr)
+    if is_bot_challenge(status, headers, page):
+        print("BMKG: portal meminta tantangan anti-bot Cloudflare ('Just a moment...'); "
+              "tidak dilewati. Stasiun diisi dari NOAA. Minta akses resmi ke BMKG bila data BMKG langsung diperlukan.",
+              file=sys.stderr)
+        return {}
     found = parse_reports(page, wanted, now) if status == 200 else {}
     if found:
         return found
