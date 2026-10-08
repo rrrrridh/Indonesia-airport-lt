@@ -279,6 +279,23 @@ body {
 .filters .btn[data-filter="WIB"][aria-pressed="true"] { background: var(--wib); }
 .filters .btn[data-filter="WITA"][aria-pressed="true"] { background: var(--wita); }
 .filters .btn[data-filter="WIT"][aria-pressed="true"] { background: var(--wit); }
+.filters .sep { width: 2px; align-self: stretch; background: var(--line, var(--muted)); opacity: .4; border-radius: 2px; }
+#f-metar[aria-pressed="true"] { background: #22a35a; color: #fff; }
+#f-metar[aria-disabled="true"] { opacity: .5; cursor: not-allowed; }
+.btn-compare { width: 100%; margin-top: 8px; }
+.cmp-pick { padding: 10px 12px 12px; display: grid; gap: 8px; font-weight: 700; }
+.cmp-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.cmp-col { --z: var(--accent); border: 2.5px solid var(--ink); border-radius: 12px; padding: 6px 8px; background: var(--surface-2); border-top: 6px solid var(--z); min-width: 0; }
+.cmp-col.wib { --z: var(--wib); } .cmp-col.wita { --z: var(--wita); } .cmp-col.wit { --z: var(--wit); }
+.cmp-col .cc { font-family: var(--font-display); font-weight: 700; font-size: 18px; line-height: 1.1; }
+.cmp-col .cc small { font-size: 12px; opacity: .7; }
+.cmp-col .ccity { font-size: 11px; font-weight: 800; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cmp-col .ct { font-family: var(--font-display); font-weight: 700; font-size: 24px; font-variant-numeric: tabular-nums; line-height: 1.1; margin-top: 2px; }
+.cmp-col .cz { font-size: 11px; font-weight: 800; color: var(--muted); }
+.cmp-facts { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 3px 10px; font-size: 12px; margin: 8px 0 0; }
+.cmp-facts dt { color: var(--muted); font-weight: 800; }
+.cmp-facts dd { margin: 0; font-weight: 800; min-width: 0; }
+.cmp-note { font-size: 11px; font-weight: 700; color: var(--muted); margin-top: 6px; }
 .list { position: relative; list-style: none; margin: 0; padding: 6px; overflow-y: auto; flex: 1; min-height: 0; display: grid; gap: 6px; align-content: start; }
 .row {
   --z: var(--accent);
@@ -327,7 +344,7 @@ body {
   .zone-meta { font-size: 11px; }
   .legend .legend-cols { display: none; }
   .hint { display: none; }
-  .card { top: auto; bottom: 10px; }
+  .card { top: auto; bottom: 10px; max-height: 58%; }
   .board { min-height: clamp(380px, 105vw, 66vh); }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -409,6 +426,26 @@ body {
           </div>
           <div class="wx" id="c-wx"></div>
           <div class="card-diff"><span class="pill" id="c-zone"></span> <span id="c-zname"></span><br><span id="c-diff" style="color:var(--muted)"></span></div>
+          <button type="button" class="btn btn-compare" id="btn-compare">Bandingkan dengan bandara lain</button>
+        </div>
+      </div>
+
+      <div class="card" id="cmp" hidden aria-live="polite">
+        <div class="card-head">
+          <div class="card-codes" id="cmp-title">Bandingkan<small>DUA BANDARA</small></div>
+          <button type="button" class="card-close" id="cmp-close" aria-label="Tutup perbandingan">×</button>
+        </div>
+        <div class="cmp-pick" id="cmp-pick">
+          <span id="cmp-pick-text"></span>
+          <button type="button" class="btn" id="cmp-cancel">Batal</button>
+        </div>
+        <div class="card-body" id="cmp-body" hidden>
+          <div class="cmp-cols">
+            <div class="cmp-col" id="cmp-a"><div class="cc"></div><div class="ccity"></div><div class="ct"></div><div class="cz"></div></div>
+            <div class="cmp-col" id="cmp-b"><div class="cc"></div><div class="ccity"></div><div class="ct"></div><div class="cz"></div></div>
+          </div>
+          <dl class="cmp-facts" id="cmp-facts"></dl>
+          <div class="cmp-note">Durasi dan jam tiba adalah perkiraan kasar dari jarak lurus (kecepatan jelajah 780 km/jam + 30 menit), bukan jadwal penerbangan.</div>
         </div>
       </div>
 
@@ -441,6 +478,8 @@ body {
           <button type="button" class="btn" data-filter="WIB" aria-pressed="false" id="f-wib">WIB</button>
           <button type="button" class="btn" data-filter="WITA" aria-pressed="false" id="f-wita">WITA</button>
           <button type="button" class="btn" data-filter="WIT" aria-pressed="false" id="f-wit">WIT</button>
+          <span class="sep" aria-hidden="true"></span>
+          <button type="button" class="btn" id="f-metar" aria-pressed="false" aria-disabled="true" title="Tampilkan hanya bandara yang punya METAR terbaru">Ada METAR</button>
         </div>
       </div>
       <ul class="list" id="list"></ul>
@@ -653,6 +692,28 @@ function cloudText(d) {
   if (d.cavok) return "CAVOK (cuaca baik, tidak ada awan penting)";
   if (!d.clouds.length) return d.nsc ? "Tidak ada awan penting" : "–";
   return d.clouds.map(c => `${COVER[c.cov]} ${c.ft != null ? fmtNum(c.ft) + " ft" : ""}${c.type === "CB" ? " · Cumulonimbus" : c.type === "TCU" ? " · Towering cumulus" : ""}`).join("; ");
+}
+
+/* ---------- Distance / direction between two airports ---------- */
+const EARTH_KM = 6371.0088;
+function distanceKm(a, b) {
+  const p1 = a.lat * RAD, p2 = b.lat * RAD, dp = (b.lat - a.lat) * RAD, dl = (b.lon - a.lon) * RAD;
+  const h = Math.sin(dp / 2) ** 2 + Math.cos(p1) * Math.cos(p2) * Math.sin(dl / 2) ** 2;
+  return 2 * EARTH_KM * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+function bearingDeg(a, b) {
+  const p1 = a.lat * RAD, p2 = b.lat * RAD, dl = (b.lon - a.lon) * RAD;
+  const y = Math.sin(dl) * Math.cos(p2), x = Math.cos(p1) * Math.sin(p2) - Math.sin(p1) * Math.cos(p2) * Math.cos(dl);
+  return (Math.atan2(y, x) / RAD + 360) % 360;
+}
+const COMPASS = ["Utara", "Timur Laut", "Timur", "Tenggara", "Selatan", "Barat Daya", "Barat", "Barat Laut"];
+const compassName = deg => COMPASS[Math.round(deg / 45) % 8];
+const CRUISE_KMH = 780, TAXI_MIN = 30;
+const flightMinutes = km => Math.round(km / CRUISE_KMH * 60 + TAXI_MIN);
+function offsetText(from, to) {
+  const d = ZONES[to.zone].offset - ZONES[from.zone].offset;
+  if (d === 0) return `Zona sama (${from.zone}), jam sama`;
+  return `${to.iata} ${Math.abs(d)} jam lebih ${d > 0 ? "cepat" : "lambat"} dari ${from.iata}`;
 }
 
 /* =====================  3D SCENE  ===================== */
@@ -997,6 +1058,35 @@ function setPinWeather(ap) {
   pin.group.add(fx); pin.fx = fx; weatherFx.push(fx);
 }
 
+/* ---------- Compare arc between two airports ---------- */
+let compareArc = null;
+const arcMat = new THREE.MeshBasicMaterial({ color: 0xff7a59 });
+const planeMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+function setCompareArc(a, b) {
+  if (compareArc) { scene.remove(compareArc); compareArc.children.forEach(c => c.geometry.dispose()); compareArc = null; }
+  if (!a || !b || !renderer) return;
+  const pa = pinObjs.get(a.iata).group.position, pb = pinObjs.get(b.iata).group.position;
+  const start = new THREE.Vector3(pa.x, pa.y + 0.45, pa.z), end = new THREE.Vector3(pb.x, pb.y + 0.45, pb.z);
+  const mid = start.clone().add(end).multiplyScalar(0.5);
+  mid.y += 0.6 + start.distanceTo(end) * 0.22;
+  const curve = new THREE.QuadraticBezierCurve3(start, mid, end);
+  compareArc = new THREE.Group();
+  compareArc.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 64, 0.045, 6, false), arcMat));
+  const plane = new THREE.Mesh(facet(new THREE.ConeGeometry(0.09, 0.28, 4)), planeMat);
+  compareArc.add(plane);
+  compareArc.userData = { curve, plane };
+  scene.add(compareArc);
+}
+const _tan = new THREE.Vector3(), _up = new THREE.Vector3(0, 1, 0);
+function animateCompareArc(t) {
+  if (!compareArc) return;
+  const { curve, plane } = compareArc.userData;
+  const k = reduceMotion ? 0.5 : (t * 0.18) % 1;
+  plane.position.copy(curve.getPoint(k));
+  curve.getTangent(k, _tan);
+  plane.quaternion.setFromUnitVectors(_up, _tan.normalize());
+}
+
 /* ---------- Day/night line (terminator) ---------- */
 let terminator = null;
 const termMat = new THREE.MeshBasicMaterial({ color: 0xffc233 });
@@ -1126,12 +1216,12 @@ function placeLabels(w, h) {
     for (const b of boxes) if (x < b[2] && x + bw > b[0] && y < b[3] && y + bh > b[1]) return false;
     return true;
   };
-  const order = AIRPORTS.filter(ap => !tagEls.get(ap.iata).el.classList.contains("dim") || ap.iata === selected)
-    .sort((a, b) => (b.iata === selected) - (a.iata === selected) || b.hub - a.hub);
+  const order = AIRPORTS.filter(ap => !tagEls.get(ap.iata).el.classList.contains("dim") || isPinned(ap.iata))
+    .sort((a, b) => isPinned(b.iata) - isPinned(a.iata) || b.hub - a.hub);
   const shown = new Set();
   for (const ap of order) {
     const t = tagEls.get(ap.iata), pin = pinObjs.get(ap.iata);
-    if (!labelsOn && ap.iata !== selected) continue;
+    if (!labelsOn && !isPinned(ap.iata)) continue;
     if (!t.w) { t.w = t.el.offsetWidth; t.h = t.el.offsetHeight; }
     v3.copy(pin.group.position); v3.y += pin.fx ? 1.3 : pin.ball.position.y + pin.rad + 0.04;  // sit above any rain cloud
     v3.project(camera);
@@ -1248,6 +1338,7 @@ function frame(now) {
       if (c.position.x > 30) c.position.x = -30;
     });
   }
+  animateCompareArc(t);
   renderer.render(scene, camera);
   placeLabels(board.clientWidth, board.clientHeight);
   updateHover();
@@ -1268,6 +1359,7 @@ const listEl = document.getElementById("list");
 const countEl = document.getElementById("count");
 const qEl = document.getElementById("q");
 let zoneFilter = "ALL";
+let metarOnly = false;
 
 AIRPORTS.forEach(ap => {
   const li = document.createElement("li");
@@ -1289,6 +1381,9 @@ listEl.appendChild(emptyEl);
 
 const cardEl = document.getElementById("card");
 function select(code, fromList) {
+  if (compare.picking && code === compare.a) return;
+  if (compare.picking && code) return finishCompare(code, fromList);
+  if (compare.b && code) closeCompare();
   selected = code;
   const ap = code && AIRPORTS.find(a => a.iata === code);
   AIRPORTS.forEach(a => a.row.classList.toggle("active", a.iata === code));
@@ -1317,15 +1412,104 @@ function select(code, fromList) {
 }
 document.getElementById("card-close").addEventListener("click", () => select(null));
 
+/* ---------- Compare two airports ---------- */
+const compare = { a: null, b: null, picking: false };
+// The selected airport and both compared airports always stay on the map, whatever the filters say.
+function isPinned(code) { return code === selected || code === compare.a || code === compare.b; }
+const cmpEl = document.getElementById("cmp");
+const cmpPick = document.getElementById("cmp-pick");
+const cmpBody = document.getElementById("cmp-body");
+const byIata = code => AIRPORTS.find(x => x.iata === code);
+function startCompare() {
+  if (!selected) return;
+  compare.a = selected; compare.b = null; compare.picking = true;
+  cardEl.hidden = true;
+  cmpEl.className = "card"; cmpEl.hidden = false;
+  cmpPick.hidden = false; cmpBody.hidden = true;
+  document.getElementById("cmp-title").innerHTML = `${compare.a} ⇄ …<small>BANDINGKAN DUA BANDARA</small>`;
+  document.getElementById("cmp-pick-text").textContent = `Pilih bandara kedua di peta atau di daftar untuk dibandingkan dengan ${compare.a}.`;
+}
+function finishCompare(code, fromList) {
+  compare.b = code; compare.picking = false;
+  const a = byIata(compare.a), b = byIata(code);
+  selected = null;
+  AIRPORTS.forEach(x => x.row.classList.toggle("active", x.iata === a.iata || x.iata === b.iata));
+  tagEls.forEach((t, c) => t.el.classList.toggle("sel", c === a.iata || c === b.iata));
+  pinObjs.forEach((p, c) => { const on = c === a.iata || c === b.iata; p.ring.visible = false; p.ball.scale.setScalar(on ? p.rad * 1.4 : p.rad); });
+  cmpPick.hidden = true; cmpBody.hidden = false;
+  document.getElementById("cmp-title").innerHTML = `${a.iata} ⇄ ${b.iata}<small>${esc(a.icao)} ⇄ ${esc(b.icao)}</small>`;
+  const km = distanceKm(a, b), brg = bearingDeg(a, b);
+  const rows = [
+    ["Selisih jam", offsetText(a, b)],
+    ["Jarak", `${fmtNum(Math.round(km))} km · ${fmtNum(Math.round(km / 1.852))} NM (garis lurus)`],
+    ["Arah", `${Math.round(brg)}° dari ${a.iata} (${compassName(brg)})`],
+    ["Perkiraan terbang", durText(flightMinutes(km) * 60000)],
+    ["Berangkat sekarang", `<span id="cmp-arrive"></span>`],
+    ["Matahari terbenam", `<span id="cmp-sunset"></span>`],
+  ];
+  document.getElementById("cmp-facts").innerHTML = rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("");
+  setCompareArc(a, b);
+  applyFilter();
+  if (controls) {
+    const pa = pinObjs.get(a.iata).group.position, pb = pinObjs.get(b.iata).group.position;
+    const c = pa.clone().add(pb).multiplyScalar(0.5);
+    const span = pa.distanceTo(pb);
+    const t = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+    userMoved = true;
+    // zoom out enough that both pins clear the comparison panel on the left
+    c.x -= span * 0.2;
+    flyTo(c, Math.max(9, (span * 0.75 + 3) / (t * Math.min(camera.aspect, 1.6))), new THREE.Vector3(0, 1.05, 0.75).normalize());
+  }
+  if (fromList && window.matchMedia("(max-width: 900px)").matches) board.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
+  tick();
+}
+function closeCompare() {
+  const had = compare.a || compare.b;
+  compare.a = compare.b = null; compare.picking = false;
+  cmpEl.hidden = true;
+  setCompareArc(null, null);
+  if (had) applyFilter();
+  if (had) {
+    AIRPORTS.forEach(x => x.row.classList.remove("active"));
+    tagEls.forEach(t => t.el.classList.remove("sel"));
+    pinObjs.forEach(p => p.ball.scale.setScalar(p.rad));
+  }
+}
+function updateCompare(now, z) {
+  if (!compare.b) return;
+  const a = byIata(compare.a), b = byIata(compare.b);
+  [["cmp-a", a], ["cmp-b", b]].forEach(([id, ap]) => {
+    const el = document.getElementById(id), t = z[ap.zone];
+    el.className = `cmp-col ${ZONES[ap.zone].cls}`;
+    el.querySelector(".cc").innerHTML = `${ap.iata} <small>${esc(ap.icao)}</small>`;
+    el.querySelector(".ccity").textContent = ap.city;
+    el.querySelector(".ct").textContent = `${t.hm}:${t.sec}`;
+    el.querySelector(".cz").textContent = `${ap.zone} · UTC+${ZONES[ap.zone].offset} · ${partOfDay(t.h)}`;
+  });
+  const arrive = now + flightMinutes(distanceKm(a, b)) * 60000;
+  const arr = document.getElementById("cmp-arrive");
+  if (arr) arr.textContent = `${zoneHM(a.zone, now)} ${a.zone} dari ${a.iata} → tiba ±${zoneHM(b.zone, arrive)} ${b.zone}`;
+  const ss = document.getElementById("cmp-sunset");
+  if (ss) ss.textContent = `${a.iata} ${zoneHM(a.zone, airportSun(a, now).set)} ${a.zone} · ${b.iata} ${zoneHM(b.zone, airportSun(b, now).set)} ${b.zone}`;
+}
+document.getElementById("btn-compare").addEventListener("click", startCompare);
+document.getElementById("cmp-close").addEventListener("click", () => { closeCompare(); select(null); });
+document.getElementById("cmp-cancel").addEventListener("click", () => {
+  const back = compare.a;
+  closeCompare();
+  select(back);
+});
+document.addEventListener("keydown", e => { if (e.key === "Escape" && (compare.a || compare.b)) { closeCompare(); select(null); } });
+
 function applyFilter() {
   const q = qEl.value.trim().toLowerCase();
   let shown = 0;
   AIRPORTS.forEach(ap => {
-    const visible = (zoneFilter === "ALL" || ap.zone === zoneFilter) && (!q || ap.row.dataset.search.includes(q));
+    const visible = (zoneFilter === "ALL" || ap.zone === zoneFilter) && (!q || ap.row.dataset.search.includes(q)) && (!metarOnly || !!ap.wx);
     ap.row.hidden = !visible;
-    tagEls.get(ap.iata).el.classList.toggle("dim", !visible);
+    tagEls.get(ap.iata).el.classList.toggle("dim", !visible && !isPinned(ap.iata));
     const pin = pinObjs.get(ap.iata);
-    if (pin) pin.group.visible = visible || ap.iata === selected;
+    if (pin) pin.group.visible = visible || isPinned(ap.iata);
     if (visible) shown++;
   });
   emptyEl.hidden = shown > 0;
@@ -1339,6 +1523,19 @@ function setZone(z) {
   flyToZone(z);
 }
 qEl.addEventListener("input", applyFilter);
+const fMetar = document.getElementById("f-metar");
+fMetar.addEventListener("click", () => {
+  if (!metarFeed.ok) return;
+  metarOnly = !metarOnly;
+  fMetar.setAttribute("aria-pressed", String(metarOnly));
+  applyFilter();
+});
+function renderMetarFilter() {
+  fMetar.setAttribute("aria-disabled", String(!metarFeed.ok));
+  fMetar.textContent = metarFeed.ok ? `Ada METAR · ${metarFeed.count}` : "Ada METAR";
+  fMetar.title = metarFeed.ok ? "Tampilkan hanya bandara yang punya METAR terbaru" : "Data METAR tidak tersedia di tampilan ini";
+  if (!metarFeed.ok && metarOnly) { metarOnly = false; fMetar.setAttribute("aria-pressed", "false"); }
+}
 document.querySelectorAll("[data-filter]").forEach(b => b.addEventListener("click", () => setZone(b.dataset.filter)));
 document.querySelectorAll(".zone").forEach(b => b.addEventListener("click", () => setZone(zoneFilter === b.dataset.zone ? "ALL" : b.dataset.zone)));
 
@@ -1371,7 +1568,8 @@ btnSpin.addEventListener("click", () => {
 });
 document.getElementById("btn-reset").addEventListener("click", () => {
   select(null);
-  zoneFilter = "ALL"; qEl.value = ""; applyFilter();
+  zoneFilter = "ALL"; qEl.value = ""; metarOnly = false; fMetar.setAttribute("aria-pressed", "false"); applyFilter();
+  closeCompare();
   flyHome();
 });
 
@@ -1393,7 +1591,7 @@ async function loadMetar() {
     const res = await fetch(`${METAR_URL}?t=${Date.now()}`, { cache: "no-store" });
     if (res.ok) doc = await res.json();
   } catch (e) { /* offline, blocked, or opened from disk */ }
-  if (!doc) { if (!metarFeed.ok) renderMetarStatus(); return; }
+  if (!doc) { if (!metarFeed.ok) { renderMetarStatus(); renderMetarFilter(); } return; }
   const stations = doc.stations || {};
   metarFeed = { ok: true, generated: Date.parse(doc.generated), count: 0 };
   AIRPORTS.forEach(ap => {
@@ -1413,6 +1611,8 @@ async function loadMetar() {
     setPinWeather(ap);
   });
   renderMetarStatus();
+  renderMetarFilter();
+  applyFilter();
   if (selected) renderWx(AIRPORTS.find(a => a.iata === selected));
 }
 function renderMetarStatus() {
@@ -1492,6 +1692,7 @@ function tick() {
     document.getElementById("c-sunnote").textContent = sunNote(sun, now);
     updateWxAge(ap, now);
   }
+  updateCompare(now, z);
 }
 tick();
 applyFilter();
