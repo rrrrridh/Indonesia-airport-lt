@@ -11,7 +11,7 @@ Sebelum mengisi apa pun, cari empat hal ini di dokumentasi atau email dari BMKG:
 |---|---|
 | **Alamat (URL) endpoint METAR** | Diisi ke `BMKG_METAR_URL`. |
 | **Apakah butuh kunci / token?** Kalau ya, dikirim lewat header atau parameter URL? | Kunci **tidak boleh** ditaruh di variables (lihat bagian 4). |
-| **Cara memilih bandara**: semua sekaligus, satu per permintaan, atau daftar kode ICAO? Pemisahnya spasi atau koma? | Skrip mengirim ke-65 kode ICAO **dipisah spasi** dalam satu parameter. |
+| **Cara memilih bandara**: semua sekaligus, satu per permintaan, atau daftar kode ICAO? Pemisahnya spasi atau koma? | Skrip mengirim semua kode ICAO (saat ini 133) **dipisah spasi** dalam satu parameter. |
 | **Isi responsnya**: apakah memuat teks METAR mentah seperti `METAR WIII 071030Z 05008KT 9000 ... Q1009 NOSIG=`? | Skrip membaca teks METAR mentah. Kalau API hanya memberi data yang sudah diurai (suhu, angin, dll. dalam kolom terpisah), skrip perlu diubah. |
 
 ## 2. Variables yang tersedia
@@ -27,7 +27,7 @@ Diatur di GitHub: **Settings → Secrets and variables → Actions → tab Varia
 Cara skrip memakainya (`scripts/fetch_metar.py`):
 
 1. Skrip membuka `BMKG_METAR_URL` apa adanya dengan GET. Kalau responsnya sudah berisi METAR bandara-bandara di dashboard, data itu langsung dipakai. Pada langkah ini `BMKG_METAR_FIELD` dan `BMKG_METAR_METHOD` tidak dipakai.
-2. Kalau belum, skrip mengirim ke-65 kode ICAO, dipisah spasi, lewat parameter `BMKG_METAR_FIELD` dengan metode `BMKG_METAR_METHOD`.
+2. Kalau belum, skrip mengirim semua kode ICAO dari `data/airports.json`, dipisah spasi, lewat parameter `BMKG_METAR_FIELD` dengan metode `BMKG_METAR_METHOD`.
    - `GET` menghasilkan `…?<FIELD>=WITT WIMM WIMN …`.
    - `POST` mengirim form biasa (`application/x-www-form-urlencoded`).
 3. Bandara yang tidak didapat dari BMKG tetap diisi dari NOAA, jadi dashboard tidak pernah kosong karena BMKG.
@@ -86,7 +86,7 @@ Untuk kasus-kasus ini, siapkan dokumentasi API dari BMKG (alamat, contoh permint
    - `BMKG GET …: HTTP 200 …` artinya endpoint terjangkau.
    - `BMKG … -> N stations` artinya N bandara didapat dari BMKG.
    - `AWC: N stations` artinya bandara sisanya diisi dari NOAA.
-   - `… 27/65 stations written …` adalah jumlah total bandara yang punya METAR.
+   - `… N/133 stations written …` adalah jumlah total bandara yang punya METAR.
 3. Di dashboard, kartu bandara menampilkan **Sumber: BMKG** untuk data dari BMKG.
 
 Kalau log menunjukkan `HTTP 401`/`403`, biasanya kuncinya belum dikirim atau salah. `HTTP 404` biasanya berarti URL salah. `0 stations` dengan `HTTP 200` berarti format responsnya tidak memuat teks METAR mentah, atau nama parameternya salah.

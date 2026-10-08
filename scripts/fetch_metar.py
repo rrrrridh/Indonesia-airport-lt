@@ -42,8 +42,8 @@ REPORT_RE = re.compile(
 
 
 def airport_icaos():
-    src = (ROOT / "src" / "dashboard.html").read_text(encoding="utf-8")
-    return re.findall(r'\[\s*"[A-Z]{3}",\s*"([A-Z]{4})"', src)
+    airports = json.loads((ROOT / "data" / "airports.json").read_text(encoding="utf-8"))
+    return [a[1] for a in airports if a[1]]
 
 
 def get_text(url, data=None, timeout=40):
@@ -177,13 +177,19 @@ def from_bmkg(icaos, now):
     return {}
 
 
-def from_awc(icaos, now):
-    url = AWC_URL + "?" + urllib.parse.urlencode({"ids": ",".join(icaos), "format": "raw", "hours": 3})
-    try:
-        found = parse_reports(get_text(url), set(icaos), now)
-    except Exception as e:
-        print(f"AWC: {e}", file=sys.stderr)
-        return {}
+def from_awc(icaos, now, batch=40):
+    """NOAA AWC, queried in batches so a long station list is never cut short."""
+    found = {}
+    for i in range(0, len(icaos), batch):
+        part = icaos[i:i + batch]
+        url = AWC_URL + "?" + urllib.parse.urlencode({"ids": ",".join(part), "format": "raw", "hours": 3})
+        try:
+            got = parse_reports(get_text(url), set(part), now)
+        except Exception as e:
+            print(f"AWC batch {i // batch + 1}: {e}", file=sys.stderr)
+            continue
+        print(f"AWC batch {i // batch + 1} ({len(part)} ids): {len(got)} stations {' '.join(sorted(got))}", file=sys.stderr)
+        found.update(got)
     print(f"AWC: {len(found)} stations", file=sys.stderr)
     return found
 

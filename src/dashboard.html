@@ -440,7 +440,7 @@ body {
     </aside>
   </section>
 
-  <p class="foot">Batas provinsi: Peta Dasar BAKOSURTANAL (disederhanakan). Posisi gunung, sungai, dan hutan bersifat ilustratif. METAR diambil dari NOAA Aviation Weather Center (memuat laporan stasiun BMKG yang diteruskan ke jaringan internasional), diperbarui tiap 30 menit; bandara tanpa laporan terbaru tidak ditampilkan datanya; hanya untuk informasi, bukan pengganti briefing penerbangan resmi. Jam terbit/terbenam dihitung dengan rumus astronomi (akurasi sekitar ±1 menit, di permukaan laut). Indonesia tidak memakai waktu musim panas, jadi selisih antarzona selalu tetap: WIB +7, WITA +8, WIT +9 jam dari UTC.</p>
+  <p class="foot">Batas provinsi: Peta Dasar BAKOSURTANAL (disederhanakan). Data bandara: OurAirports (domain publik). Posisi gunung, sungai, dan hutan bersifat ilustratif. METAR diambil dari NOAA Aviation Weather Center (memuat laporan stasiun BMKG yang diteruskan ke jaringan internasional), diperbarui tiap 30 menit; bandara tanpa laporan terbaru tidak ditampilkan datanya; hanya untuk informasi, bukan pengganti briefing penerbangan resmi. Jam terbit/terbenam dihitung dengan rumus astronomi (akurasi sekitar ±1 menit, di permukaan laut). Indonesia tidak memakai waktu musim panas, jadi selisih antarzona selalu tetap: WIB +7, WITA +8, WIT +9 jam dari UTC.</p>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -454,76 +454,8 @@ const ZONES = {
   WIT:  { offset: 9, name: "Waktu Indonesia Timur",  cls: "wit"  },
 };
 
-// [IATA, ICAO, nama bandara, kota, provinsi, lat, lon, zona, hub]
-const AIRPORTS = [
-  ["BTJ", "WITT", "Sultan Iskandar Muda", "Banda Aceh", "Aceh", 5.5229, 95.4206, "WIB", 0],
-  ["KNO", "WIMM", "Kualanamu", "Medan", "Sumatera Utara", 3.6422, 98.8853, "WIB", 1],
-  ["DTB", "WIMN", "Raja Sisingamangaraja XII (Silangit)", "Tapanuli Utara", "Sumatera Utara", 2.2597, 98.9919, "WIB", 0],
-  ["GNS", "WIMB", "Binaka", "Gunungsitoli", "Sumatera Utara", 1.1663, 97.7047, "WIB", 0],
-  ["PDG", "WIEE", "Minangkabau", "Padang", "Sumatera Barat", -0.7869, 100.2808, "WIB", 0],
-  ["PKU", "WIBB", "Sultan Syarif Kasim II", "Pekanbaru", "Riau", 0.4608, 101.4447, "WIB", 0],
-  ["BTH", "WIDD", "Hang Nadim", "Batam", "Kepulauan Riau", 1.1210, 104.1190, "WIB", 1],
-  ["TNJ", "WIDN", "Raja Haji Fisabilillah", "Tanjungpinang", "Kepulauan Riau", 0.9227, 104.5321, "WIB", 0],
-  ["NTX", "WION", "Raden Sadjad", "Natuna", "Kepulauan Riau", 3.9087, 108.3880, "WIB", 0],
-  ["DJB", "WIJJ", "Sultan Thaha", "Jambi", "Jambi", -1.6380, 103.6444, "WIB", 0],
-  ["PLM", "WIPP", "Sultan Mahmud Badaruddin II", "Palembang", "Sumatera Selatan", -2.8983, 104.6997, "WIB", 1],
-  ["BKS", "WIGG", "Fatmawati Soekarno", "Bengkulu", "Bengkulu", -3.8637, 102.3390, "WIB", 0],
-  ["PGK", "WIPK", "Depati Amir", "Pangkalpinang", "Kep. Bangka Belitung", -2.1622, 106.1390, "WIB", 0],
-  ["TJQ", "WIOD", "H.A.S. Hanandjoeddin", "Tanjung Pandan", "Kep. Bangka Belitung", -2.7457, 107.7549, "WIB", 0],
-  ["TKG", "WILL", "Radin Inten II", "Bandar Lampung", "Lampung", -5.2406, 105.1757, "WIB", 0],
-  ["CGK", "WIII", "Soekarno–Hatta", "Tangerang", "Banten", -6.1256, 106.6559, "WIB", 1],
-  ["HLP", "WIHH", "Halim Perdanakusuma", "Jakarta Timur", "DKI Jakarta", -6.2666, 106.8910, "WIB", 0],
-  ["BDO", "WICC", "Husein Sastranegara", "Bandung", "Jawa Barat", -6.9006, 107.5763, "WIB", 0],
-  ["KJT", "WICA", "Kertajati", "Majalengka", "Jawa Barat", -6.6489, 108.1667, "WIB", 0],
-  ["SRG", "WAHS", "Jenderal Ahmad Yani", "Semarang", "Jawa Tengah", -6.9727, 110.3750, "WIB", 0],
-  ["SOC", "WAHQ", "Adi Soemarmo", "Surakarta", "Jawa Tengah", -7.5161, 110.7569, "WIB", 0],
-  ["YIA", "WAHI", "Yogyakarta International", "Kulon Progo", "DI Yogyakarta", -7.9075, 110.0569, "WIB", 1],
-  ["SUB", "WARR", "Juanda", "Surabaya", "Jawa Timur", -7.3798, 112.7868, "WIB", 1],
-  ["MLG", "WARA", "Abdul Rachman Saleh", "Malang", "Jawa Timur", -7.9266, 112.7145, "WIB", 0],
-  ["BWX", "WADY", "Banyuwangi", "Banyuwangi", "Jawa Timur", -8.3102, 114.3401, "WIB", 0],
-  ["PNK", "WIOO", "Supadio", "Pontianak", "Kalimantan Barat", -0.1507, 109.4039, "WIB", 1],
-  ["KTG", "WIOK", "Rahadi Oesman", "Ketapang", "Kalimantan Barat", -1.8166, 109.9633, "WIB", 0],
-  ["PKY", "WAGG", "Tjilik Riwut", "Palangka Raya", "Kalimantan Tengah", -2.2251, 113.9426, "WIB", 0],
-
-  ["DPS", "WADD", "I Gusti Ngurah Rai", "Denpasar", "Bali", -8.7482, 115.1672, "WITA", 1],
-  ["LOP", "WADL", "Zainuddin Abdul Madjid", "Lombok Tengah", "Nusa Tenggara Barat", -8.7573, 116.2767, "WITA", 0],
-  ["BMU", "WADB", "Sultan Muhammad Salahuddin", "Bima", "Nusa Tenggara Barat", -8.5397, 118.6873, "WITA", 0],
-  ["LBJ", "WATO", "Komodo", "Labuan Bajo", "Nusa Tenggara Timur", -8.4867, 119.8890, "WITA", 0],
-  ["TMC", "WATK", "Lede Kalumbang", "Tambolaka", "Nusa Tenggara Timur", -9.4097, 119.2440, "WITA", 0],
-  ["WGP", "WATU", "Umbu Mehang Kunda", "Waingapu", "Nusa Tenggara Timur", -9.6692, 120.3020, "WITA", 0],
-  ["ENE", "WATE", "H. Hasan Aroeboesman", "Ende", "Nusa Tenggara Timur", -8.8493, 121.6606, "WITA", 0],
-  ["MOF", "WATC", "Frans Seda", "Maumere", "Nusa Tenggara Timur", -8.6406, 122.2369, "WITA", 0],
-  ["KOE", "WATT", "El Tari", "Kupang", "Nusa Tenggara Timur", -10.1716, 123.6711, "WITA", 1],
-  ["BDJ", "WAOO", "Syamsudin Noor", "Banjarmasin", "Kalimantan Selatan", -3.4424, 114.7626, "WITA", 0],
-  ["BPN", "WALL", "Sultan Aji Muhammad Sulaiman Sepinggan", "Balikpapan", "Kalimantan Timur", -1.2683, 116.8945, "WITA", 1],
-  ["AAP", "WALS", "Aji Pangeran Tumenggung Pranoto", "Samarinda", "Kalimantan Timur", -0.3745, 117.2557, "WITA", 0],
-  ["BEJ", "WAQT", "Kalimarau", "Berau", "Kalimantan Timur", 2.1555, 117.4322, "WITA", 0],
-  ["TRK", "WAQQ", "Juwata", "Tarakan", "Kalimantan Utara", 3.3267, 117.5656, "WITA", 0],
-  ["UPG", "WAAA", "Sultan Hasanuddin", "Makassar", "Sulawesi Selatan", -5.0617, 119.5540, "WITA", 1],
-  ["MJU", "WAWJ", "Tampa Padang", "Mamuju", "Sulawesi Barat", -2.5833, 119.0333, "WITA", 0],
-  ["PLW", "WAFF", "Mutiara SIS Al-Jufrie", "Palu", "Sulawesi Tengah", -0.9185, 119.9096, "WITA", 0],
-  ["LUW", "WAFW", "Syukuran Aminuddin Amir", "Luwuk", "Sulawesi Tengah", -1.0389, 122.7720, "WITA", 0],
-  ["GTO", "WAMG", "Djalaluddin", "Gorontalo", "Gorontalo", 0.6372, 122.8497, "WITA", 0],
-  ["MDC", "WAMM", "Sam Ratulangi", "Manado", "Sulawesi Utara", 1.5493, 124.9259, "WITA", 1],
-  ["KDI", "WAWW", "Haluoleo", "Kendari", "Sulawesi Tenggara", -4.0816, 122.4182, "WITA", 0],
-  ["BUW", "WAWB", "Betoambari", "Baubau", "Sulawesi Tenggara", -5.4869, 122.5690, "WITA", 0],
-
-  ["TTE", "WAEE", "Sultan Babullah", "Ternate", "Maluku Utara", 0.8314, 127.3810, "WIT", 0],
-  ["AMQ", "WAPP", "Pattimura", "Ambon", "Maluku", -3.7103, 128.0891, "WIT", 1],
-  ["LUV", "WAPL", "Karel Sadsuitubun", "Langgur", "Maluku", -5.7605, 132.7590, "WIT", 0],
-  ["SXK", "WAPI", "Mathilda Batlayeri", "Saumlaki", "Maluku", -7.9886, 131.3060, "WIT", 0],
-  ["SOQ", "WAXX", "Domine Eduard Osok", "Sorong", "Papua Barat Daya", -0.8945, 131.2879, "WIT", 1],
-  ["RJM", "WASN", "Marinda", "Waisai", "Papua Barat Daya", -0.4219, 130.7731, "WIT", 0],
-  ["MKW", "WAUU", "Rendani", "Manokwari", "Papua Barat", -0.8918, 134.0490, "WIT", 0],
-  ["FKQ", "WASF", "Torea", "Fakfak", "Papua Barat", -2.9202, 132.2670, "WIT", 0],
-  ["KNG", "WASK", "Utarom", "Kaimana", "Papua Barat", -3.6445, 133.6956, "WIT", 0],
-  ["BIK", "WABB", "Frans Kaisiepo", "Biak", "Papua", -1.1900, 136.1078, "WIT", 0],
-  ["DJJ", "WAJJ", "Dortheys Hiyo Eluay (Sentani)", "Jayapura", "Papua", -2.5770, 140.5161, "WIT", 1],
-  ["NBX", "WABI", "Douw Aturure", "Nabire", "Papua Tengah", -3.3682, 135.4960, "WIT", 0],
-  ["TIM", "WAYY", "Mozes Kilangin", "Timika", "Papua Tengah", -4.5283, 136.8873, "WIT", 0],
-  ["WMX", "WAVV", "Wamena", "Wamena", "Papua Pegunungan", -4.1025, 138.9572, "WIT", 0],
-  ["MKQ", "WAKK", "Mopah", "Merauke", "Papua Selatan", -8.5203, 140.4180, "WIT", 0],
-].map(([iata, icao, name, city, prov, lat, lon, zone, hub]) => ({ iata, icao, name, city, prov, lat, lon, zone, hub: !!hub }));
+// [IATA, ICAO, nama bandara, kota, provinsi, lat, lon, zona, hub] — dari data/airports.json (scripts/prepare_airports.py)
+const AIRPORTS = (/*__AIRPORTS__*/[]).map(([iata, icao, name, city, prov, lat, lon, zone, hub]) => ({ iata, icao, name, city, prov, lat, lon, zone, hub: !!hub }));
 
 // [nama, lon, lat, ketinggian (m), aktif berasap]
 const MOUNTAINS = [

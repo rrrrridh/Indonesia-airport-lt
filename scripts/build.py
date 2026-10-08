@@ -12,10 +12,12 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 template = (ROOT / "src" / "dashboard.html").read_text(encoding="utf-8")
 provinces = json.loads((ROOT / "data" / "provinces.json").read_text(encoding="utf-8"))
+airports = json.loads((ROOT / "data" / "airports.json").read_text(encoding="utf-8"))
 
 page = (
     template
     .replace("/*__PROVINCES__*/null", json.dumps(provinces, separators=(",", ":")))
+    .replace("/*__AIRPORTS__*/[]", json.dumps(airports, ensure_ascii=False, separators=(",", ":")))
 )
 
 if len(sys.argv) == 3 and sys.argv[1] == "--fragment":
