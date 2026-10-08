@@ -33,7 +33,7 @@ Cara mengaktifkan:
 - Gabungkan branch ini ke `main` (jadwal GitHub Actions hanya berjalan di branch default).
 - Buka **Settings → Pages → Source** dan pilih **GitHub Actions**. (GitHub Pages untuk repo privat butuh paket berbayar.)
 - Jalankan sekali lewat **Actions → METAR update & deploy → Run workflow**, lalu cek log langkah *Fetch METAR*. Log menunjukkan berapa stasiun yang didapat dari BMKG dan dari NOAA.
-- Jika BMKG kelak memberi akses resmi (mis. alamat API atau kunci), alamatnya bisa diatur lewat **Settings → Secrets and variables → Actions → Variables**: `BMKG_METAR_URL`, `BMKG_METAR_FIELD`, `BMKG_METAR_METHOD` (lihat keterangan di `scripts/fetch_metar.py`).
+- Jika BMKG kelak memberi akses resmi (API atau langganan data), ikuti panduan [docs/bmkg-api.md](docs/bmkg-api.md): variables yang perlu diisi (`BMKG_METAR_URL`, `BMKG_METAR_FIELD`, `BMKG_METAR_METHOD`), cara menyimpan kunci API sebagai Secret, dan cara mengujinya.
 
 Menjalankan secara lokal: `python3 scripts/fetch_metar.py data/metar.json`, lalu buka lewat server lokal (`python3 -m http.server`), karena browser memblokir `fetch` dari `file://`.
 
@@ -43,6 +43,7 @@ Data METAR di dashboard hanya untuk informasi, bukan pengganti briefing meteorol
 - `src/dashboard.html` – template halaman (HTML, CSS, JS, adegan 3D, serta data bandara, gunung, dan sungai).
 - `data/provinces.json` – batas provinsi yang sudah disederhanakan dan diberi tag zona waktu.
 - `scripts/build.py` – menggabungkan semuanya menjadi `index.html`.
+- `docs/bmkg-api.md` – panduan memasang API resmi BMKG lewat variables pengaturan Actions.
 - `scripts/fetch_metar.py` – mengambil METAR (BMKG, cadangan NOAA AWC) ke `data/metar.json`.
 - `.github/workflows/metar.yml` – jadwal 30 menit: ambil METAR, build, deploy ke GitHub Pages.
 - `scripts/prepare_provinces.py` – membuat `data/provinces.json` dari GeoJSON sumber.
