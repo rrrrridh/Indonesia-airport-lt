@@ -15,16 +15,25 @@ without code changes):
 """
 import datetime as dt
 import html
+import http.cookiejar
 import json
 import os
 import pathlib
 import re
 import sys
+import urllib.error
 import urllib.parse
 import urllib.request
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-UA = "Mozilla/5.0 (compatible; JamBandaraNusantara/1.0; +https://github.com/rrrrridh/indonesia-airport-lt)"
+# BMKG's portal answers 403 to anything that does not look like a browser, so send browser-like headers.
+BROWSER_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+    "Accept-Language": "id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7",
+    "Upgrade-Insecure-Requests": "1",
+}
+UA = "JamBandaraNusantara/1.0 (+https://github.com/rrrrridh/Indonesia-airport-lt)"
 BMKG_URL = os.environ.get("BMKG_METAR_URL") or "https://web-aviation.bmkg.go.id/web/metar_speci.php"
 AWC_URL = "https://aviationweather.gov/api/data/metar"
 
@@ -42,6 +51,25 @@ def http(url, data=None, timeout=40):
     req = urllib.request.Request(url, data=data, headers={"User-Agent": UA})
     with urllib.request.urlopen(req, timeout=timeout) as r:
         return r.read().decode("utf-8", "replace")
+
+
+class Browser:
+    """Tiny cookie-keeping client that returns the response even for HTTP errors, so they can be logged."""
+
+    def __init__(self):
+        self.opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
+
+    def request(self, url, data=None, headers=None, timeout=40):
+        h = dict(BROWSER_HEADERS)
+        h.update(headers or {})
+        req = urllib.request.Request(url, data=data, headers=h)
+        try:
+            with self.opener.open(req, timeout=timeout) as r:
+                return r.status, r.headers, r.read().decode("utf-8", "replace")
+        except urllib.error.HTTPError as e:
+            return e.code, e.headers, e.read().decode("utf-8", "replace")
+        except Exception as e:  # DNS, TLS, timeout...
+            return 0, {}, f"{type(e).__name__}: {e}"
 
 
 def obs_time(day, hh, mm, now):
@@ -73,21 +101,69 @@ def parse_reports(text, wanted, now):
     return out
 
 
-def from_bmkg(icaos, now):
-    fields = [os.environ["BMKG_METAR_FIELD"]] if os.environ.get("BMKG_METAR_FIELD") else ["icao", "kode", "code", "station", "icao_code"]
-    method = (os.environ.get("BMKG_METAR_METHOD") or "POST").upper()
-    query = " ".join(icaos)
-    for field in fields:
-        try:
-            if method == "GET":
-                text = http(BMKG_URL + ("&" if "?" in BMKG_URL else "?") + urllib.parse.urlencode({field: query}))
-            else:
-                text = http(BMKG_URL, urllib.parse.urlencode({field: query}).encode())
-        except Exception as e:  # network or HTTP error: try the next variant
-            print(f"BMKG ({method} {field}): {e}", file=sys.stderr)
+def describe(status, headers, body):
+    keep = {k.lower(): v for k, v in dict(headers).items()}
+    hints = {k: keep[k] for k in ("server", "via", "cf-ray", "x-cache", "x-served-by", "content-type") if k in keep}
+    snippet = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", body))[:160]
+    return f"HTTP {status} {hints} body: {snippet!r}"
+
+
+def parse_form(page):
+    """Find the METAR query form: (action, method, {name: default}, text_field_names)."""
+    m = re.search(r"<form\b([^>]*)>(.*?)</form>", page, re.S | re.I)
+    if not m:
+        return None
+    attrs, inner = m.groups()
+    attr = lambda n: (re.search(n + r"\s*=\s*[\"']([^\"']*)[\"']", attrs, re.I) or [None, None])[1]
+    fields, texts = {}, []
+    for tag in re.findall(r"<(?:input|textarea|select)\b[^>]*>", inner, re.I):
+        name = re.search(r"name\s*=\s*[\"']([^\"']+)[\"']", tag, re.I)
+        if not name:
             continue
-        found = parse_reports(text, set(icaos), now)
-        print(f"BMKG ({method} {field}): {len(found)} stations", file=sys.stderr)
+        kind = (re.search(r"type\s*=\s*[\"']([^\"']+)[\"']", tag, re.I) or [None, "text"])[1].lower()
+        value = (re.search(r"value\s*=\s*[\"']([^\"']*)[\"']", tag, re.I) or [None, ""])[1]
+        fields[name.group(1)] = value
+        if kind in ("text", "search") or tag.lower().startswith("<textarea"):
+            texts.append(name.group(1))
+    return attr("action") or "", (attr("method") or "get").upper(), fields, texts
+
+
+def from_bmkg(icaos, now):
+    wanted = set(icaos)
+    query = " ".join(icaos)
+    forced = os.environ.get("BMKG_METAR_FIELD")
+    browser = Browser()
+
+    status, headers, page = browser.request(BMKG_URL)
+    print(f"BMKG GET {BMKG_URL}: {describe(status, headers, page)}", file=sys.stderr)
+    found = parse_reports(page, wanted, now) if status == 200 else {}
+    if found:
+        return found
+
+    form = parse_form(page) if status == 200 else None
+    if form:
+        action, method, defaults, texts = form
+        print(f"BMKG form: method={method} action={action!r} fields={defaults} text_fields={texts}", file=sys.stderr)
+    # Build submissions: the discovered form first, then common field names.
+    attempts = []
+    target_default = urllib.parse.urljoin(BMKG_URL, form[0]) if form and form[0] else BMKG_URL
+    names = [forced] if forced else (form[3] if form and form[3] else []) + ["icao", "kode", "code", "station", "icao_code"]
+    method = (os.environ.get("BMKG_METAR_METHOD") or (form[1] if form else "POST")).upper()
+    for field in dict.fromkeys(names):
+        payload = dict(form[2]) if form else {}
+        payload[field] = query
+        attempts.append((method, field, payload))
+
+    for method, field, payload in attempts:
+        enc = urllib.parse.urlencode(payload)
+        hdr = {"Referer": BMKG_URL, "Origin": BMKG_URL.split("/web/")[0]}
+        if method == "GET":
+            status, headers, text = browser.request(target_default + ("&" if "?" in target_default else "?") + enc, headers=hdr)
+        else:
+            hdr["Content-Type"] = "application/x-www-form-urlencoded"
+            status, headers, text = browser.request(target_default, enc.encode(), hdr)
+        found = parse_reports(text, wanted, now) if status == 200 else {}
+        print(f"BMKG {method} {field}: {describe(status, headers, text)} -> {len(found)} stations", file=sys.stderr)
         if found:
             return found
     return {}
