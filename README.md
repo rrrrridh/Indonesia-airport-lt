@@ -31,6 +31,8 @@ Workflow `.github/workflows/metar.yml` berjalan **setiap 30 menit**:
 1. `scripts/fetch_metar.py` mengambil METAR terbaru untuk semua bandara di `data/airports.json`. Sumber utamanya adalah portal penerbangan BMKG (`web-aviation.bmkg.go.id`), dengan cadangan NOAA Aviation Weather Center (`aviationweather.gov`) yang menyebarkan laporan stasiun BMKG yang sama. **Saat ini portal BMKG dilindungi tantangan anti-bot Cloudflare**, sehingga skrip otomatis tidak bisa mengaksesnya dan seluruh data berasal dari NOAA (hanya sebagian bandara punya laporan dalam 3 jam terakhir; bandara kecil umumnya tidak). Skrip tidak mencoba melewati tantangan itu. Untuk data langsung dari BMKG, minta akses resmi (API atau langganan data) ke BMKG. Sumber tiap stasiun dicatat di `data/metar.json`.
 2. Hasilnya (`data/metar.json`) dipublikasikan bersama `index.html` ke GitHub Pages. Halaman memeriksa file baru setiap 5 menit.
 
+> **Catatan:** jadwal bawaan GitHub untuk repo ini jarang berjalan (hanya beberapa kali sehari). Untuk pembaruan yang benar-benar tiap 30 menit, pasang pemicu eksternal mengikuti [docs/external-trigger.md](docs/external-trigger.md) (cron-job.org + token GitHub berizin minimum).
+
 Cara mengaktifkan:
 - Gabungkan branch ini ke `main` (jadwal GitHub Actions hanya berjalan di branch default).
 - Buka **Settings → Pages → Source** dan pilih **GitHub Actions**. (GitHub Pages untuk repo privat butuh paket berbayar.)
@@ -61,6 +63,7 @@ node tests/check_page.mjs index.html
 - `data/airports.json` – daftar bandara (IATA, ICAO, nama, kota, provinsi, koordinat, zona waktu, hub), dibuat oleh `scripts/prepare_airports.py`.
 - `data/provinces.json` – batas provinsi yang sudah disederhanakan dan diberi tag zona waktu.
 - `scripts/build.py` – menggabungkan semuanya menjadi `index.html`.
+- `docs/external-trigger.md` – panduan pemicu eksternal (cron-job.org) agar METAR benar-benar diperbarui tiap 30 menit.
 - `docs/bmkg-api.md` – panduan memasang API resmi BMKG lewat variables pengaturan Actions.
 - `scripts/fetch_metar.py` – mengambil METAR (BMKG, cadangan NOAA AWC) ke `data/metar.json`.
 - `.github/workflows/metar.yml` – jadwal 30 menit: ambil METAR, build, deploy ke GitHub Pages.
