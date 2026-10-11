@@ -32,7 +32,7 @@ BROWSER_HEADERS = {
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
     "Accept-Language": "id-ID,id;q=0.9,en;q=0.7",
 }
-UA = "JamBandaraNusantara/1.0 (+https://github.com/rrrrridh/Indonesia-airport-lt)"
+UA = "JamBandaraIndonesia/1.0 (+https://github.com/rrrrridh/Indonesia-airport-lt)"
 BMKG_URL = os.environ.get("BMKG_METAR_URL") or "https://web-aviation.bmkg.go.id/web/metar_speci.php"
 AWC_URL = "https://aviationweather.gov/api/data/metar"
 
