@@ -11,7 +11,7 @@ Dashboard peta 3D bergaya kartun yang menampilkan lokasi bandara Indonesia (kode
 ## Fitur
 - Peta 3D gaya game kartun (Three.js): pulau-pulau timbul berwarna sesuai zona waktu, laut beranimasi, awan melayang.
 - Gunung (24 puncak utama, puncak tinggi bersalju, gunung api aktif berasap), sungai besar (Kapuas, Mahakam, Barito, Musi, Bengawan Solo, Mamberamo, Digul, dll.), dan hutan di pulau-pulau besar. Arahkan kursor ke gunung atau sungai untuk melihat namanya.
-- 133 bandara (semua bandara Indonesia ber-kode IATA dengan penerbangan terjadwal, plus bandara kelas menengah/besar) dengan label **IATA/ICAO** (mis. `CGK/WIII`) dan jam lokal yang berjalan langsung; label diatur otomatis agar tidak bertumpuk.
+- 133 bandara yang bisa didarati minimal pesawat ATR 72/42, termasuk bandara jet untuk A320/A330/B737. Bandara perintis yang hanya untuk Twin Otter/Caravan tidak dimasukkan. Tiap bandara tampil dengan label **IATA/ICAO** (mis. `CGK/WIII`) dan jam lokal yang berjalan langsung; label diatur otomatis agar tidak bertumpuk.
 - Klik bandara (di peta atau di daftar) untuk terbang ke lokasinya dan melihat jam detik, tanggal, bagian hari, dan selisih dengan jam perangkat Anda.
 - **Matahari terbit & terbenam** untuk setiap bandara (dihitung dengan rumus astronomi NOAA/SunCalc): tampil di daftar, kartu detail (beserta hitung mundur), dan di label peta lewat tombol **Label sunset**.
 - **Bayangan siang/malam**: sisi Indonesia yang sedang malam diberi bayangan gelap, dengan garis kuning sebagai batas siang/malam (terminator) yang bergerak sesuai posisi matahari sebenarnya. Bisa dimatikan dengan tombol **Siang/malam**.
@@ -30,6 +30,8 @@ Cukup buka `index.html` di browser (butuh koneksi internet untuk memuat Three.js
 Workflow `.github/workflows/metar.yml` berjalan **setiap 30 menit**:
 1. `scripts/fetch_metar.py` mengambil METAR terbaru untuk semua bandara di `data/airports.json`. Sumber utamanya adalah portal penerbangan BMKG (`web-aviation.bmkg.go.id`), dengan cadangan NOAA Aviation Weather Center (`aviationweather.gov`) yang menyebarkan laporan stasiun BMKG yang sama. **Saat ini portal BMKG dilindungi tantangan anti-bot Cloudflare**, sehingga skrip otomatis tidak bisa mengaksesnya dan seluruh data berasal dari NOAA (hanya sebagian bandara punya laporan dalam 3 jam terakhir; bandara kecil umumnya tidak). Skrip tidak mencoba melewati tantangan itu. Untuk data langsung dari BMKG, minta akses resmi (API atau langganan data) ke BMKG. Sumber tiap stasiun dicatat di `data/metar.json`.
 2. Hasilnya (`data/metar.json`) dipublikasikan bersama `index.html` ke GitHub Pages. Halaman memeriksa file baru setiap 5 menit.
+
+> **Catatan:** jadwal bawaan GitHub untuk repo ini jarang berjalan (hanya beberapa kali sehari). Untuk pembaruan yang benar-benar tiap 30 menit, pasang pemicu eksternal mengikuti [docs/external-trigger.md](docs/external-trigger.md) (cron-job.org + token GitHub berizin minimum).
 
 Cara mengaktifkan:
 - Gabungkan branch ini ke `main` (jadwal GitHub Actions hanya berjalan di branch default).
@@ -61,6 +63,7 @@ node tests/check_page.mjs index.html
 - `data/airports.json` – daftar bandara (IATA, ICAO, nama, kota, provinsi, koordinat, zona waktu, hub), dibuat oleh `scripts/prepare_airports.py`.
 - `data/provinces.json` – batas provinsi yang sudah disederhanakan dan diberi tag zona waktu.
 - `scripts/build.py` – menggabungkan semuanya menjadi `index.html`.
+- `docs/external-trigger.md` – panduan pemicu eksternal (cron-job.org) agar METAR benar-benar diperbarui tiap 30 menit.
 - `docs/bmkg-api.md` – panduan memasang API resmi BMKG lewat variables pengaturan Actions.
 - `scripts/fetch_metar.py` – mengambil METAR (BMKG, cadangan NOAA AWC) ke `data/metar.json`.
 - `.github/workflows/metar.yml` – jadwal 30 menit: ambil METAR, build, deploy ke GitHub Pages.
@@ -77,7 +80,7 @@ python3 scripts/build.py
 
 ## Sumber data
 - Batas provinsi: Peta Dasar BAKOSURTANAL skala 1:250.000 via [superpikar/indonesia-geojson](https://github.com/superpikar/indonesia-geojson). Data ini memakai pembagian provinsi lama (mis. Kepulauan Riau tergabung dengan Riau, Papua belum dimekarkan), tetapi zona waktunya tetap sama.
-- Bandara: [OurAirports](https://ourairports.com/data/) (domain publik) — dipilih bandara Indonesia yang tidak tutup, ber-kode IATA, dan punya penerbangan terjadwal atau berkelas menengah/besar. Nama, kota, dan status hub untuk 65 bandara awal ditulis manual dan dipertahankan; koordinat dan kode ICAO mengikuti OurAirports. Memperbarui daftar:
+- Bandara: [OurAirports](https://ourairports.com/data/) (domain publik) — dipakai untuk koordinat dan kode ICAO. **Daftar bandaranya dikurasi manual**: bandara dengan landasan dan layanan minimal kelas ATR. Kurasi memakai panjang landasan OurAirports serta pengecekan rute ATR/jet, dan bandara perintis tidak dimasukkan. Skrip tidak memilih bandara sendiri: skrip mempertahankan semua bandara yang ada di `data/airports.json` (nama, kota, provinsi, dan hub tetap seperti yang ditulis manual), lalu memperbarui koordinat dan kode ICAO. Bandara baru ditambahkan dengan `--add` berisi kode IATA (mis. `--add XXX,YYY`); namanya diambil dari OurAirports dan sebaiknya dirapikan. Memperbarui data:
   ```bash
   curl -LO https://raw.githubusercontent.com/davidmegginson/ourairports-data/main/airports.csv
   curl -LO https://raw.githubusercontent.com/davidmegginson/ourairports-data/main/regions.csv

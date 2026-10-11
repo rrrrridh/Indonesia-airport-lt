@@ -1,12 +1,15 @@
-"""Build data/airports.json from the OurAirports open dataset (public domain).
+"""Refresh data/airports.json from the OurAirports open dataset (public domain).
 
-Selection: Indonesian airports that are not closed, have an IATA code, and either
-have scheduled service or are classed as medium/large airports. Airports already
-in data/airports.json are always kept, with their hand-written name, city,
-province and hub flag; coordinates and ICAO codes are refreshed from OurAirports.
+The airport list itself is curated: airports that can take at least an ATR 72/42
+(and the jet airports for A320/A330/B737), without pioneer strips that only see
+Twin Otter/Caravan-class aircraft. OurAirports has no reliable aircraft data, so
+this script does not choose airports. It keeps every airport already in
+data/airports.json, with its hand-written name, city, province and hub flag, and
+refreshes coordinates and ICAO codes. New airports are added by IATA code with
+--add; their names come from OurAirports and should be tidied by hand.
 
 Usage:
-  python3 scripts/prepare_airports.py airports.csv regions.csv data/airports.json
+  python3 scripts/prepare_airports.py airports.csv regions.csv data/airports.json [--add XXX,YYY]
   (airports.csv / regions.csv from https://github.com/davidmegginson/ourairports-data)
 """
 import csv
@@ -34,7 +37,7 @@ def clean_city(city):
     return re.sub(r"\s+-\s+[\w' ]+ Island$", "", city)
 
 
-def main(airports_csv, regions_csv, out_path):
+def main(airports_csv, regions_csv, out_path, add=()):
     out = pathlib.Path(out_path)
     curated = {a[0]: a for a in json.loads(out.read_text(encoding="utf-8"))} if out.exists() else {}
     with open(regions_csv, encoding="utf-8") as f:
@@ -43,16 +46,17 @@ def main(airports_csv, regions_csv, out_path):
         rows = [r for r in csv.DictReader(f)
                 if r["iso_country"] == "ID" and r["type"] != "closed" and r["iata_code"]]
     by_iata = {r["iata_code"]: r for r in rows}
-    wanted = {r["iata_code"] for r in rows
-              if r["scheduled_service"] == "yes" or r["type"] in ("medium_airport", "large_airport")}
-    missing = sorted(set(curated) - set(by_iata))
+    wanted = set(curated) | set(add)
+    missing = sorted(wanted - set(by_iata))
     if missing:
-        sys.exit(f"Curated airports not found in OurAirports: {missing}")
+        sys.exit(f"Airports not found in OurAirports: {missing}")
 
     result = []
-    for iata in sorted(wanted | set(curated)):
+    for iata in sorted(wanted):
         r = by_iata[iata]
         icao = r["icao_code"] or r["gps_code"]
+        if not re.fullmatch(r"W[A-Z]{3}", icao):
+            sys.exit(f"No ICAO code for {iata} in OurAirports")
         region = r["iso_region"]
         code = region.split("-")[1]
         if code not in ZONE:
@@ -73,4 +77,10 @@ def main(airports_csv, regions_csv, out_path):
 
 
 if __name__ == "__main__":
-    main(*sys.argv[1:4])
+    args = sys.argv[1:]
+    add = []
+    if "--add" in args:
+        i = args.index("--add")
+        add = [c.strip().upper() for c in args[i + 1].split(",") if c.strip()]
+        del args[i:i + 2]
+    main(*args[:3], add=add)

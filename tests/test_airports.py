@@ -74,6 +74,7 @@ class PrepareAirports(unittest.TestCase):
                           iso_region="ID-BA", latitude_deg="-8.7", longitude_deg="115.2", municipality="Denpasar-Bali Island"),
                 self.base(iata_code="XXA", icao_code="WAXA", name="Tiny Airport", type="small_airport",
                           scheduled_service="no", iso_region="ID-PA"),
+                self.base(iata_code="XXB", icao_code="", name="No Code Airport", type="small_airport", iso_region="ID-PA"),
                 self.base(iata_code="XXC", icao_code="WAXC", name="Closed Airport", type="closed", iso_region="ID-PA"),
                 self.base(iata_code="KOE", icao_code="", gps_code="WATT", name="El Tari Airport",
                           iso_region="ID-NT", latitude_deg="-10.17", longitude_deg="123.67", municipality="Kupang"),
@@ -81,9 +82,9 @@ class PrepareAirports(unittest.TestCase):
             out = pathlib.Path(tmp) / "airports.json"
             out.write_text(json.dumps([["HLP", "WIHH", "Halim (kurasi)", "Jakarta Timur", "DKI Jakarta", 0, 0, "WIB", 1]]))
             with contextlib.redirect_stderr(io.StringIO()):
-                pa.main(str(airports), str(regions), str(out))
+                pa.main(str(airports), str(regions), str(out), add=["DPS", "KOE"])
             rows = {r[0]: r for r in json.loads(out.read_text())}
-        self.assertEqual(set(rows), {"HLP", "DPS", "KOE"})  # small/unscheduled and closed are skipped
+        self.assertEqual(set(rows), {"HLP", "DPS", "KOE"})    # curated + --add only; nothing picked automatically
         self.assertEqual(rows["HLP"][2], "Halim (kurasi)")    # curated name kept
         self.assertEqual(rows["HLP"][8], 1)                   # curated hub kept
         self.assertEqual(rows["HLP"][5], -6.2)                # coordinates refreshed
@@ -92,11 +93,17 @@ class PrepareAirports(unittest.TestCase):
         self.assertEqual(rows["KOE"][1], "WATT")              # falls back to gps_code
         self.assertEqual(rows["KOE"][4], "Nusa Tenggara Timur")
 
+    def test_added_airport_needs_icao(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            airports, regions = self.write_csvs(tmp, [self.base(iata_code="XXB", icao_code="", name="No Code", iso_region="ID-PA")])
+            with self.assertRaises(SystemExit):
+                pa.main(str(airports), str(regions), str(pathlib.Path(tmp) / "out.json"), add=["XXB"])
+
     def test_unknown_region_fails_loudly(self):
         with tempfile.TemporaryDirectory() as tmp:
             airports, regions = self.write_csvs(tmp, [self.base(iata_code="ZZZ", icao_code="WZZZ", name="Z", iso_region="ID-XX")])
             with self.assertRaises(SystemExit):
-                pa.main(str(airports), str(regions), str(pathlib.Path(tmp) / "out.json"))
+                pa.main(str(airports), str(regions), str(pathlib.Path(tmp) / "out.json"), add=["ZZZ"])
 
     def test_clean_helpers(self):
         self.assertEqual(pa.clean_name("Sultan Hasanuddin International Airport"), "Sultan Hasanuddin")
