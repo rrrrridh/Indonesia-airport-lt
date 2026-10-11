@@ -124,8 +124,9 @@ body {
 /* Main */
 .main { display: grid; grid-template-columns: minmax(0, 1fr) 370px; gap: 16px; min-height: 560px; }
 @media (min-width: 901px) {
-  .app { height: 100%; }
-  .main { min-height: 560px; }
+  .app { height: 100%; align-content: start; grid-template-rows: auto auto auto auto; }
+  /* keep the map board wide (Indonesia is ~2.7x wider than tall), so big screens do not get a tall band of sea */
+  .main { min-height: 560px; height: max(560px, min(calc(100vh - 290px), calc((min(100vw, 1600px) - 418px) / 1.85))); }
   .roster { min-height: 0; }
 }
 .board {
@@ -191,9 +192,18 @@ body {
 .legend {
   position: absolute; left: 10px; bottom: 10px; z-index: 10;
   background: var(--surface); border: 2.5px solid var(--ink); border-radius: 14px; box-shadow: 0 3px 0 var(--ink);
-  padding: 8px 10px; font-size: 12px; font-weight: 700; display: grid; gap: 3px;
+  padding: 8px 10px; font-size: 12px; font-weight: 700;
 }
-.legend h3 { margin: 0 0 2px; font-family: var(--font-display); font-weight: 600; font-size: 13px; color: var(--muted); }
+.legend-body { display: grid; gap: 3px; }
+.legend summary {
+  cursor: pointer; list-style: none; display: flex; align-items: center; gap: 6px;
+  font-family: var(--font-display); font-weight: 600; font-size: 13px; color: var(--muted);
+}
+.legend summary::-webkit-details-marker { display: none; }
+.legend summary::after { content: "▸"; font-size: 11px; transition: transform .15s; }
+.legend[open] summary { margin-bottom: 2px; }
+.legend[open] summary::after { transform: rotate(90deg); }
+.legend:not([open]) { padding: 4px 10px; }
 .legend-row { display: flex; align-items: center; gap: 7px; }
 .legend-cols { display: grid; grid-template-columns: auto auto; gap: 3px 14px; }
 .sw.night { background: #3a4378; }
@@ -338,9 +348,11 @@ body {
   .zone-time .sec { display: none; }
   .zone-meta { font-size: 11px; }
   .legend .legend-cols { display: none; }
+  .hud-top { left: 10px; flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+  .hud-top .btn { flex: none; font-size: 11px; padding: 4px 9px; }
   .hint { display: none; }
-  .card { top: auto; bottom: 10px; max-height: 58%; }
-  .board { min-height: clamp(380px, 105vw, 66vh); }
+  .card { top: auto; bottom: 10px; max-height: 74%; }
+  .board { min-height: clamp(320px, 84vw, 60vh); }
 }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
@@ -442,8 +454,9 @@ body {
         </div>
       </div>
 
-      <div class="legend" aria-label="Legenda peta">
-        <h3>Legenda</h3>
+      <details class="legend" id="legend">
+        <summary>Legenda</summary>
+        <div class="legend-body">
         <div class="legend-row"><span class="sw wib"></span>WIB · UTC+7</div>
         <div class="legend-row"><span class="sw wita"></span>WITA · UTC+8</div>
         <div class="legend-row"><span class="sw wit"></span>WIT · UTC+9</div>
@@ -457,7 +470,8 @@ body {
           <div class="legend-row"><span class="catdot IFR"></span>IFR <span class="catdot LIFR"></span>LIFR</div>
           <div class="legend-row"><svg width="16" height="14" viewBox="0 0 16 14"><rect x="1" y="2" width="14" height="10" rx="3" fill="#4cc3f1" stroke="#23305a" stroke-width="1.6"/><path d="M3 7c1.5-1.5 3 1.5 4.5 0s3 1.5 4.5 0" fill="none" stroke="#fff" stroke-width="1.4" stroke-linecap="round"/></svg>Laut</div>
         </div>
-      </div>
+        </div>
+      </details>
       <div class="hint">Garis kuning = batas siang/malam saat ini<br>Seret untuk geser · klik kanan / dua jari untuk memutar · scroll untuk zoom</div>
     </div>
 
@@ -1142,16 +1156,55 @@ function applyTheme() {
   sunLight.color.set(night ? 0xbfcaff : 0xfff3dd);
 }
 
+/* ---------- Legend (collapsed by default so it does not cover the islands) ---------- */
+const legendEl = document.getElementById("legend");
+try { if (localStorage.getItem("legendOpen") === "1") legendEl.open = true; } catch (e) {}
+legendEl.addEventListener("toggle", () => {
+  try { localStorage.setItem("legendOpen", legendEl.open ? "1" : "0"); } catch (e) {}
+});
+
 /* ---------- Camera flights ---------- */
 let flight = null;
 let userMoved = false;   // until the viewer touches the map, keep the whole country framed
+// Land extent of Indonesia (Sabang to the Papua border, Miangas to Rote) and the
+// home viewing angle: steep enough that the long east-west archipelago is not
+// squashed, so the islands fill the board instead of the sea around them.
+const LAND_BOX = { west: 95.2, east: 141.1, north: 6.0, south: -11.1 };
+const HOME_DIR = new THREE.Vector3(0, 1.7, 0.85).normalize();
+const fitCam = new THREE.PerspectiveCamera();
 function homeView() {
-  const aspect = camera.aspect || 1.6;
-  const halfW = 25, halfH = 9;
-  const t = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
-  const dist = Math.max(halfH / t, halfW / (t * aspect)) * 0.98;
-  const dir = new THREE.Vector3(0, 1.05, 0.75).normalize();
-  return { target: new THREE.Vector3(0, 0, 0.3), pos: dir.multiplyScalar(dist).add(new THREE.Vector3(0, 0, 0.3)) };
+  const w = board.clientWidth || 960, h = board.clientHeight || 600;
+  // Free part of the board, in pixels: below the buttons, with room for the top labels.
+  const hud = document.querySelector(".hud-top");
+  const top = Math.min(h * 0.3, (hud ? hud.offsetTop + hud.offsetHeight : 40) + (w < 600 ? 14 : 30));
+  const pad = { l: 12, r: 12, t: top, b: w < 600 ? 30 : 34 };
+  const corners = [];
+  for (const lon of [LAND_BOX.west, LAND_BOX.east])
+    for (const lat of [LAND_BOX.north, LAND_BOX.south])
+      for (const y of [0, LAND_H + 0.4]) corners.push(new THREE.Vector3(toX(lon), y, toZ(lat)));
+  const target = new THREE.Vector3((toX(LAND_BOX.west) + toX(LAND_BOX.east)) / 2, 0, (toZ(LAND_BOX.north) + toZ(LAND_BOX.south)) / 2);
+  fitCam.fov = camera.fov; fitCam.aspect = w / h; fitCam.near = camera.near; fitCam.far = camera.far;
+  fitCam.updateProjectionMatrix();
+  let dist = 60;
+  const v = new THREE.Vector3();
+  // A few rounds of: project the land box, scale the distance to fill the free area, re-centre.
+  for (let i = 0; i < 6; i++) {
+    fitCam.position.copy(target).addScaledVector(HOME_DIR, dist);
+    fitCam.lookAt(target); fitCam.updateMatrixWorld();
+    let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+    for (const c of corners) {
+      v.copy(c).project(fitCam);
+      const px = (v.x + 1) / 2 * w, py = (1 - v.y) / 2 * h;
+      x0 = Math.min(x0, px); x1 = Math.max(x1, px); y0 = Math.min(y0, py); y1 = Math.max(y1, py);
+    }
+    const availW = w - pad.l - pad.r, availH = h - pad.t - pad.b;
+    dist *= Math.max((x1 - x0) / availW, (y1 - y0) / availH);
+    // shift so the box centre lands on the centre of the free area (world units per pixel at the target)
+    const perPx = 2 * Math.tan(THREE.MathUtils.degToRad(fitCam.fov / 2)) * fitCam.position.distanceTo(target) / h;
+    const dy = ((y0 + y1) / 2 - (pad.t + (h - pad.b)) / 2) * perPx;
+    target.z += dy / HOME_DIR.y * Math.hypot(HOME_DIR.y, HOME_DIR.z) * 0.5;
+  }
+  return { target, pos: target.clone().addScaledVector(HOME_DIR, dist) };
 }
 function flyTo(target, dist, dirOverride) {
   if (!controls) return;
@@ -1176,7 +1229,7 @@ function flyToZone(z) {
   const c = new THREE.Vector3((Math.min(...xs) + Math.max(...xs)) / 2, 0, (Math.min(...zs) + Math.max(...zs)) / 2);
   const span = Math.max(Math.max(...xs) - Math.min(...xs), (Math.max(...zs) - Math.min(...zs)) * 1.6);
   const t = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
-  flyTo(c, Math.max(8, (span / 2 + 2) / (t * Math.min(camera.aspect, 1.8))), new THREE.Vector3(0, 1.05, 0.75).normalize());
+  flyTo(c, Math.max(8, (span / 2 + 2) / (t * Math.min(camera.aspect, 1.8))), HOME_DIR.clone());
 }
 
 /* ---------- Labels ---------- */
