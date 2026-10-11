@@ -1,7 +1,8 @@
 """Build data/airports.json from the OurAirports open dataset (public domain).
 
-Selection: Indonesian airports that are not closed, have an IATA code, and either
-have scheduled service or are classed as medium/large airports. Airports already
+Selection: every Indonesian airport that is not closed and has both an IATA code
+and an ICAO-style code (W...), including small pioneer airstrips without
+scheduled service. Strips OurAirports marks as unusable are skipped. Airports already
 in data/airports.json are always kept, with their hand-written name, city,
 province and hub flag; coordinates and ICAO codes are refreshed from OurAirports.
 
@@ -44,7 +45,7 @@ def main(airports_csv, regions_csv, out_path):
                 if r["iso_country"] == "ID" and r["type"] != "closed" and r["iata_code"]]
     by_iata = {r["iata_code"]: r for r in rows}
     wanted = {r["iata_code"] for r in rows
-              if r["scheduled_service"] == "yes" or r["type"] in ("medium_airport", "large_airport")}
+              if re.fullmatch(r"W[A-Z]{3}", r["icao_code"] or r["gps_code"]) and "UNUSABLE" not in r["name"]}
     missing = sorted(set(curated) - set(by_iata))
     if missing:
         sys.exit(f"Curated airports not found in OurAirports: {missing}")
