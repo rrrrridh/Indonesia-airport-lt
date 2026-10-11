@@ -1,4 +1,4 @@
-# Jam Bandara Nusantara
+# Jam Bandara Indonesia
 
 Dashboard peta 3D bergaya kartun yang menampilkan lokasi bandara Indonesia (kode IATA/ICAO) beserta **waktu lokal** masing-masing, dengan pulau-pulau diwarnai per zona waktu:
 
