@@ -11,7 +11,7 @@ Dashboard peta 3D bergaya kartun yang menampilkan lokasi bandara Indonesia (kode
 ## Fitur
 - Peta 3D gaya game kartun (Three.js): pulau-pulau timbul berwarna sesuai zona waktu, laut beranimasi, awan melayang.
 - Gunung (24 puncak utama, puncak tinggi bersalju, gunung api aktif berasap), sungai besar (Kapuas, Mahakam, Barito, Musi, Bengawan Solo, Mamberamo, Digul, dll.), dan hutan di pulau-pulau besar. Arahkan kursor ke gunung atau sungai untuk melihat namanya.
-- 237 bandara (semua bandara Indonesia yang masih aktif dan punya kode IATA serta ICAO, termasuk bandara perintis kecil di Papua, Maluku, dan pulau-pulau terluar) dengan label **IATA/ICAO** (mis. `CGK/WIII`) dan jam lokal yang berjalan langsung; label diatur otomatis agar tidak bertumpuk.
+- 133 bandara yang bisa didarati minimal pesawat ATR 72/42, termasuk bandara jet untuk A320/A330/B737. Bandara perintis yang hanya untuk Twin Otter/Caravan tidak dimasukkan. Tiap bandara tampil dengan label **IATA/ICAO** (mis. `CGK/WIII`) dan jam lokal yang berjalan langsung; label diatur otomatis agar tidak bertumpuk.
 - Klik bandara (di peta atau di daftar) untuk terbang ke lokasinya dan melihat jam detik, tanggal, bagian hari, dan selisih dengan jam perangkat Anda.
 - **Matahari terbit & terbenam** untuk setiap bandara (dihitung dengan rumus astronomi NOAA/SunCalc): tampil di daftar, kartu detail (beserta hitung mundur), dan di label peta lewat tombol **Label sunset**.
 - **Bayangan siang/malam**: sisi Indonesia yang sedang malam diberi bayangan gelap, dengan garis kuning sebagai batas siang/malam (terminator) yang bergerak sesuai posisi matahari sebenarnya. Bisa dimatikan dengan tombol **Siang/malam**.
@@ -80,7 +80,7 @@ python3 scripts/build.py
 
 ## Sumber data
 - Batas provinsi: Peta Dasar BAKOSURTANAL skala 1:250.000 via [superpikar/indonesia-geojson](https://github.com/superpikar/indonesia-geojson). Data ini memakai pembagian provinsi lama (mis. Kepulauan Riau tergabung dengan Riau, Papua belum dimekarkan), tetapi zona waktunya tetap sama.
-- Bandara: [OurAirports](https://ourairports.com/data/) (domain publik) — dipilih bandara Indonesia yang tidak tutup dan punya kode IATA serta kode ICAO `W…` (landasan yang ditandai *unusable* dilewati). Bandara tanpa kode IATA belum ditampilkan, karena dashboard memakai kode IATA sebagai kunci. Nama, kota, provinsi, dan status hub yang sudah ada di `data/airports.json` dipertahankan (sudah dirapikan manual); koordinat dan kode ICAO mengikuti OurAirports. Bandara baru memakai nama dari OurAirports dan sebaiknya dirapikan setelah pembaruan. Memperbarui daftar:
+- Bandara: [OurAirports](https://ourairports.com/data/) (domain publik) — dipakai untuk koordinat dan kode ICAO. **Daftar bandaranya dikurasi manual**: bandara dengan landasan dan layanan minimal kelas ATR. Kurasi memakai panjang landasan OurAirports serta pengecekan rute ATR/jet, dan bandara perintis tidak dimasukkan. Skrip tidak memilih bandara sendiri: skrip mempertahankan semua bandara yang ada di `data/airports.json` (nama, kota, provinsi, dan hub tetap seperti yang ditulis manual), lalu memperbarui koordinat dan kode ICAO. Bandara baru ditambahkan dengan `--add` berisi kode IATA (mis. `--add XXX,YYY`); namanya diambil dari OurAirports dan sebaiknya dirapikan. Memperbarui data:
   ```bash
   curl -LO https://raw.githubusercontent.com/davidmegginson/ourairports-data/main/airports.csv
   curl -LO https://raw.githubusercontent.com/davidmegginson/ourairports-data/main/regions.csv
