@@ -15,7 +15,7 @@ Dashboard peta 3D bergaya kartun yang menampilkan lokasi bandara Indonesia (kode
 - Klik bandara (di peta atau di daftar) untuk terbang ke lokasinya dan melihat jam detik, tanggal, bagian hari, dan selisih dengan jam perangkat Anda.
 - **Matahari terbit & terbenam** untuk setiap bandara (dihitung dengan rumus astronomi NOAA/SunCalc): tampil di daftar, kartu detail (beserta hitung mundur), dan di label peta lewat tombol **Label sunset**.
 - **Bayangan siang/malam**: sisi Indonesia yang sedang malam diberi bayangan gelap, dengan garis kuning sebagai batas siang/malam (terminator) yang bergerak sesuai posisi matahari sebenarnya. Bisa dimatikan dengan tombol **Siang/malam**.
-- **METAR per 30 menit**: laporan cuaca bandara (METAR/SPECI) dari NOAA Aviation Weather Center (laporan stasiun BMKG), diterjemahkan ke bahasa Indonesia (angin, jarak pandang, cuaca, awan, suhu, QNH, tren) beserta kategori penerbangan VFR/MVFR/IFR/LIFR. Tampil di kartu bandara, daftar, titik warna di label peta, dan awan hujan/petir 3D di atas bandara yang sedang hujan.
+- **METAR langsung**: tombol **Perbarui** mengambil METAR terbaru saat itu juga, dan dashboard memperbaruinya sendiri tiap 10 menit (lewat Cloudflare Worker, lihat di bawah). Laporan cuaca bandara (METAR/SPECI) dari NOAA Aviation Weather Center (laporan stasiun BMKG), diterjemahkan ke bahasa Indonesia (angin, jarak pandang, cuaca, awan, suhu, QNH, tren) beserta kategori penerbangan VFR/MVFR/IFR/LIFR. Tampil di kartu bandara, daftar, titik warna di label peta, dan awan hujan/petir 3D di atas bandara yang sedang hujan.
 - Jam besar per zona di bagian atas; klik untuk memfilter dan memusatkan peta ke zona tersebut.
 - Filter **Ada METAR** untuk menampilkan hanya bandara yang punya laporan cuaca terbaru (bisa digabung dengan filter zona dan pencarian).
 - **Bandingkan dua bandara**: buka kartu bandara → *Bandingkan dengan bandara lain* → pilih bandara kedua. Panel menampilkan jam lokal keduanya, selisih jam, jarak (km/NM), arah, perkiraan lama terbang dan jam tiba, serta jam terbenam; peta menggambar busur rute 3D.
@@ -26,12 +26,15 @@ Dashboard peta 3D bergaya kartun yang menampilkan lokasi bandara Indonesia (kode
 ## Menjalankan
 Cukup buka `index.html` di browser (butuh koneksi internet untuk memuat Three.js dari cdnjs/jsDelivr dan font Google; browser harus mendukung WebGL). Bisa juga di-host lewat GitHub Pages.
 
-## METAR otomatis (GitHub Actions + GitHub Pages)
-Workflow `.github/workflows/metar.yml` berjalan **setiap 30 menit**:
-1. `scripts/fetch_metar.py` mengambil METAR terbaru untuk semua bandara di `data/airports.json`. Sumber utamanya adalah portal penerbangan BMKG (`web-aviation.bmkg.go.id`), dengan cadangan NOAA Aviation Weather Center (`aviationweather.gov`) yang menyebarkan laporan stasiun BMKG yang sama. **Saat ini portal BMKG dilindungi tantangan anti-bot Cloudflare**, sehingga skrip otomatis tidak bisa mengaksesnya dan seluruh data berasal dari NOAA (hanya sebagian bandara punya laporan dalam 3 jam terakhir; bandara kecil umumnya tidak). Skrip tidak mencoba melewati tantangan itu. Untuk data langsung dari BMKG, minta akses resmi (API atau langganan data) ke BMKG. Sumber tiap stasiun dicatat di `data/metar.json`.
-2. Hasilnya (`data/metar.json`) dipublikasikan bersama `index.html` ke GitHub Pages. Halaman memeriksa file baru setiap 5 menit.
+## METAR langsung dari dashboard
+Tombol **Perbarui** di atas daftar bandara (dan pembaruan otomatis tiap 10 menit) mengambil METAR terbaru dari NOAA langsung di browser, tanpa menunggu GitHub Actions. NOAA tidak mengizinkan akses langsung dari browser (tidak ada header CORS), jadi dipakai perantara kecil: Cloudflare Worker gratis di [`worker/metar-proxy.js`](worker/metar-proxy.js). Cara memasang dan menyambungkannya ada di [docs/metar-live.md](docs/metar-live.md). Selama alamat Worker belum diisi (`METAR_LIVE_URL` di `src/dashboard.html`), tombol hanya memuat ulang data terakhir dari server.
 
-> **Catatan:** jadwal bawaan GitHub untuk repo ini jarang berjalan (hanya beberapa kali sehari). Untuk pembaruan yang benar-benar tiap 30 menit, pasang pemicu eksternal mengikuti [docs/external-trigger.md](docs/external-trigger.md) (cron-job.org + token GitHub berizin minimum).
+## Data METAR cadangan (GitHub Actions + GitHub Pages)
+Workflow `.github/workflows/metar.yml` menerbitkan situs setiap ada perubahan di `main` dan menurut jadwal (target tiap 30 menit):
+1. `scripts/fetch_metar.py` mengambil METAR terbaru untuk semua bandara di `data/airports.json`. Sumber utamanya adalah portal penerbangan BMKG (`web-aviation.bmkg.go.id`), dengan cadangan NOAA Aviation Weather Center (`aviationweather.gov`) yang menyebarkan laporan stasiun BMKG yang sama. **Saat ini portal BMKG dilindungi tantangan anti-bot Cloudflare**, sehingga skrip otomatis tidak bisa mengaksesnya dan seluruh data berasal dari NOAA (hanya sebagian bandara punya laporan dalam 3 jam terakhir; bandara kecil umumnya tidak). Skrip tidak mencoba melewati tantangan itu. Untuk data langsung dari BMKG, minta akses resmi (API atau langganan data) ke BMKG. Sumber tiap stasiun dicatat di `data/metar.json`.
+2. Hasilnya (`data/metar.json`) dipublikasikan bersama `index.html` ke GitHub Pages sebagai data cadangan. Jika pembaruan langsung belum aktif, halaman memeriksa file baru setiap 5 menit.
+
+> **Catatan:** jadwal bawaan GitHub untuk repo ini jarang berjalan (hanya beberapa kali sehari). Karena itu dipakai pembaruan langsung lewat Worker di atas.
 
 Cara mengaktifkan:
 - Gabungkan branch ini ke `main` (jadwal GitHub Actions hanya berjalan di branch default).
@@ -48,7 +51,8 @@ Workflow `.github/workflows/ci.yml` (**Checks**) berjalan di setiap pull request
 - semua skrip Python bisa dikompilasi;
 - `index.html` sudah di-build ulang dari `src/` dan `data/` (jika lupa, jalankan `python3 scripts/build.py` lalu commit);
 - uji unit Python di `tests/` (parser METAR, deteksi tantangan Cloudflare, NOAA per kelompok, pembuat daftar bandara, validasi `data/airports.json`);
-- `tests/check_page.mjs`: semua `<script>` di halaman bisa di-parse, dan fungsi halaman (zona waktu, terbit/terbenam, decode METAR, jarak/arah) memberi hasil yang benar;
+- `tests/check_page.mjs`: semua `<script>` di halaman bisa di-parse, dan fungsi halaman (zona waktu, terbit/terbenam, baca dan decode METAR, jarak/arah) memberi hasil yang benar;
+- `tests/check_worker.mjs`: Worker METAR menolak kode dan situs asing, membagi permintaan per 40 stasiun, dan memberi header CORS yang benar (tanpa jaringan);
 - file workflow valid.
 
 Menjalankan secara lokal:
@@ -56,6 +60,7 @@ Menjalankan secara lokal:
 python3 scripts/build.py
 python3 -m unittest discover -s tests -v
 node tests/check_page.mjs index.html
+node tests/check_worker.mjs
 ```
 
 ## Struktur
@@ -63,10 +68,11 @@ node tests/check_page.mjs index.html
 - `data/airports.json` – daftar bandara (IATA, ICAO, nama, kota, provinsi, koordinat, zona waktu, hub), dibuat oleh `scripts/prepare_airports.py`.
 - `data/provinces.json` – batas provinsi yang sudah disederhanakan dan diberi tag zona waktu.
 - `scripts/build.py` – menggabungkan semuanya menjadi `index.html`.
-- `docs/external-trigger.md` – panduan pemicu eksternal (cron-job.org) agar METAR benar-benar diperbarui tiap 30 menit.
+- `docs/metar-live.md` – panduan memasang Cloudflare Worker untuk tombol **Perbarui** METAR.
+- `worker/metar-proxy.js` – kode Cloudflare Worker (perantara CORS ke NOAA AWC).
 - `docs/bmkg-api.md` – panduan memasang API resmi BMKG lewat variables pengaturan Actions.
 - `scripts/fetch_metar.py` – mengambil METAR (BMKG, cadangan NOAA AWC) ke `data/metar.json`.
-- `.github/workflows/metar.yml` – jadwal 30 menit: ambil METAR, build, deploy ke GitHub Pages.
+- `.github/workflows/metar.yml` – build dan deploy ke GitHub Pages (saat ada perubahan di `main` dan menurut jadwal), sekaligus membuat `data/metar.json` cadangan.
 - `scripts/prepare_airports.py` – membuat/memperbarui `data/airports.json` dari data OurAirports.
 - `tests/` – uji unit Python dan pemeriksaan halaman (`check_page.mjs`).
 - `.github/workflows/ci.yml` – pemeriksaan otomatis untuk PR.

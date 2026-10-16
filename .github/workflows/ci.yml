@@ -48,6 +48,9 @@ jobs:
       - name: Page checks (JavaScript)
         run: node tests/check_page.mjs index.html
 
+      - name: METAR proxy worker checks (JavaScript)
+        run: node tests/check_worker.mjs
+
       - name: Workflow files are valid YAML
         run: |
           python3 -m pip install --quiet pyyaml
