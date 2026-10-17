@@ -57,7 +57,7 @@ Hasil yang benar berupa beberapa baris teks, misalnya `METAR WIII 160830Z 05008K
 
 ## 3. Sambungkan ke dashboard
 
-Isi alamat Worker di `src/dashboard.html`, pada baris:
+Alamat Worker diisi di `src/dashboard.html`. Saat ini isinya `https://metar-proxy.ridowayudi.workers.dev`. Barisnya:
 
 ```js
 const METAR_LIVE_URL = "";   // e.g. "https://metar-proxy.<akun>.workers.dev"

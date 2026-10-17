@@ -1663,7 +1663,7 @@ Object.keys(ZONES).forEach(z => {
    Live: the "Perbarui" button (and a 10-minute timer) fetches the latest reports straight
    from NOAA AWC through a small CORS proxy (worker/metar-proxy.js, see docs/metar-live.md).
    Fallback: data/metar.json, the snapshot written when the site is deployed. */
-const METAR_LIVE_URL = "";               // e.g. "https://metar-proxy.<akun>.workers.dev" — empty = live refresh off
+const METAR_LIVE_URL = "https://metar-proxy.ridowayudi.workers.dev";   // Cloudflare Worker (worker/metar-proxy.js); "" = live refresh off
 const METAR_URL = "data/metar.json";
 const METAR_LIVE_MS = 10 * 60 * 1000;    // automatic live refresh
 const METAR_POLL_MS = 5 * 60 * 1000;     // look for a fresh snapshot when live refresh is off
