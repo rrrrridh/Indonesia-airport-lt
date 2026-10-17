@@ -74,9 +74,8 @@ Setelah di-deploy, status di atas daftar bandara akan berbunyi
 
 ## Tentang GitHub Actions
 
-Dengan Worker aktif, data di dashboard tidak lagi bergantung pada jadwal GitHub Actions.
+Data di dashboard tidak lagi bergantung pada GitHub Actions. Jadwal 30 menit di
+`.github/workflows/metar.yml` sudah dihapus, karena GitHub hanya menjalankannya beberapa kali sehari.
 
-- Workflow **METAR update & deploy** tetap dibutuhkan untuk menerbitkan situs ke GitHub Pages setiap kali
-  ada perubahan di `main`. Workflow itu juga membuat `data/metar.json` sebagai cadangan.
-- Jadwal 30 menitnya boleh dimatikan, dengan menghapus blok `schedule:` di `.github/workflows/metar.yml`.
-  Sebaiknya lakukan ini setelah Worker terbukti berjalan.
+Workflow itu sekarang bernama **Deploy dashboard** dan hanya berjalan saat ada perubahan di `main`, atau saat
+dijalankan manual. Tugasnya menerbitkan situs ke GitHub Pages sekaligus membuat `data/metar.json` sebagai cadangan.

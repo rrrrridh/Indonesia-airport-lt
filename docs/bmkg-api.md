@@ -81,7 +81,7 @@ Untuk kasus-kasus ini, siapkan dokumentasi API dari BMKG (alamat, contoh permint
 
 ## 6. Menguji setelah mengisi variables
 
-1. Buka **Actions → METAR update & deploy → Run workflow** (branch `main`).
+1. Buka **Actions → Deploy dashboard → Run workflow** (branch `main`).
 2. Setelah selesai, buka job **fetch**, langkah **Fetch METAR**. Lihat barisnya:
    - `BMKG GET …: HTTP 200 …` artinya endpoint terjangkau.
    - `BMKG … -> N stations` artinya N bandara didapat dari BMKG.
