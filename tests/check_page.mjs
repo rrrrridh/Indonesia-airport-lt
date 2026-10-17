@@ -16,7 +16,7 @@ const main = scripts.find(s => s.includes("const AIRPORTS"));
 const cut = main.indexOf("/* =====================  3D SCENE");
 assert.ok(cut > 0, "3D SCENE marker not found");
 const api = vm.runInNewContext(main.slice(0, cut) + `
-;({ AIRPORTS, ZONES, zoneNow, sunTimes, decodeMetar, wxText, distanceKm, bearingDeg, compassName, flightMinutes, offsetText })`);
+;({ AIRPORTS, ZONES, zoneNow, sunTimes, decodeMetar, wxText, parseMetarText, distanceKm, bearingDeg, compassName, flightMinutes, offsetText })`);
 
 let failed = 0;
 const test = (name, fn) => {
@@ -56,6 +56,26 @@ test("METAR decoding and flight category", () => {
   assert.equal(api.decodeMetar("METAR WIOO 080200Z 00000KT 0800 FG VV002 24/24 Q1011=").cat, "LIFR");
   assert.equal(api.decodeMetar("METAR WAJJ 080200Z VRB02KT CAVOK 28/23 Q1011=").vis, 10000);
   assert.equal(api.wxText("VCSH"), "Hujan lokal (shower) di sekitar bandara");
+});
+
+test("raw METAR text from the live source is parsed like the server script", () => {
+  const now = Date.UTC(2026, 9, 8, 3, 10);
+  const text = [
+    "METAR WIII 080230Z 05008KT 9000 FEW018CB SCT020 31/24 Q1009 NOSIG",
+    "SPECI WIII 080300Z 06010KT 8000 -RA BKN016 29/24 Q1009",   // newer one wins
+    "WADD 080200Z 10005KT CAVOK 30/24 Q1010",                     // no METAR prefix
+    "METAR WIII 072300Z 05004KT 9999 FEW020 27/24 Q1010",         // older
+    "METAR WAJJ 072000Z 00000KT 9999 FEW020 24/22 Q1011",         // 7h10m old: dropped
+    "METAR YSSY 080300Z 18010KT CAVOK 20/10 Q1020",               // not ours
+  ].join("\n");
+  const out = api.parseMetarText(text, new Set(["WIII", "WADD", "WAJJ"]), now);
+  assert.deepEqual(Object.keys(out).sort(), ["WADD", "WIII"]);
+  assert.equal(out.WIII.raw, "SPECI WIII 080300Z 06010KT 8000 -RA BKN016 29/24 Q1009=");
+  assert.equal(out.WIII.obs, Date.UTC(2026, 9, 8, 3, 0));
+  assert.equal(out.WADD.raw, "METAR WADD 080200Z 10005KT CAVOK 30/24 Q1010=");
+  // a report from the last day of the previous month, read on the 1st
+  const prev = api.parseMetarText("METAR WIII 302330Z 05004KT 9999 27/24 Q1010", new Set(["WIII"]), Date.UTC(2026, 9, 1, 1, 0));
+  assert.equal(prev.WIII.obs, Date.UTC(2026, 8, 30, 23, 30));
 });
 
 test("distance, bearing and flight estimate between airports", () => {

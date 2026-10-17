@@ -1,15 +1,14 @@
-name: METAR update & deploy
+name: Deploy dashboard
 
-# Fetches the latest METAR for every airport every 30 minutes and publishes the
-# dashboard (index.html + data/metar.json) to GitHub Pages.
+# Publishes the dashboard (index.html + a data/metar.json snapshot) to GitHub Pages
+# whenever main changes. Live METAR no longer depends on this workflow: the page
+# fetches it itself through the Cloudflare Worker (worker/metar-proxy.js, see
+# docs/metar-live.md). The 30-minute schedule was removed because GitHub ran it
+# only a few times a day; the snapshot is just a fallback when the worker is down.
 # Requires: Settings → Pages → Source = "GitHub Actions".
-# Scheduled runs only fire on the default branch. The cron avoids minutes :00
-# and :30, when GitHub delays or drops scheduled runs under load. Runs started on another
-# branch (workflow_dispatch) fetch and log but never deploy.
+# Runs started on another branch (workflow_dispatch) build and log but never deploy.
 
 on:
-  schedule:
-    - cron: "13,43 * * * *"
   workflow_dispatch:
   push:
     branches: [main]

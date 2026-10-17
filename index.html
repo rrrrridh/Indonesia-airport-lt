@@ -170,6 +170,12 @@ body {
 .row-wx { font-size: 11px; font-weight: 800; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 5px; }
 .metar-status { font-size: 11px; font-weight: 800; color: var(--muted); display: flex; align-items: center; gap: 6px; }
 .metar-status .live { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex: none; }
+.metar-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.metar-status { min-width: 0; }
+.btn-sm { font-size: 11px; padding: 3px 9px; border-radius: 10px; display: inline-flex; align-items: center; gap: 5px; flex: none; }
+.btn:disabled { opacity: .55; cursor: default; transform: none; box-shadow: 0 3px 0 var(--ink); }
+.metar-status.busy .live { background: var(--accent); animation: pulse 1s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .3; } }
 .metar-status.ok .live { background: #22a35a; box-shadow: 0 0 0 3px color-mix(in srgb, #22a35a 30%, transparent); }
 .tag time { font-family: var(--font-display); font-weight: 700; font-size: 13px; font-variant-numeric: tabular-nums; }
 .tag:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
@@ -485,7 +491,10 @@ body {
     <aside class="roster" aria-label="Daftar bandara">
       <div class="roster-head">
         <div class="roster-title"><h2>Bandara</h2><span id="count"></span></div>
-        <div class="metar-status" id="metar-status"><span class="live"></span><span id="metar-status-text">Memuat METAR…</span></div>
+        <div class="metar-row">
+          <div class="metar-status" id="metar-status"><span class="live"></span><span id="metar-status-text">Memuat METAR…</span></div>
+          <button type="button" class="btn btn-sm" id="btn-metar-refresh" aria-label="Perbarui data METAR sekarang"><svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9M13.5 2v3.5H10" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Perbarui</button>
+        </div>
         <input id="q" type="search" placeholder="Cari IATA, ICAO, nama, kota…" autocomplete="off" aria-label="Cari bandara">
         <div class="filters" role="group" aria-label="Filter zona">
           <button type="button" class="btn" data-filter="ALL" aria-pressed="true" id="f-all">Semua</button>
@@ -500,7 +509,7 @@ body {
     </aside>
   </section>
 
-  <p class="foot">Batas provinsi: Peta Dasar BAKOSURTANAL (disederhanakan). Data bandara: OurAirports (domain publik). Posisi gunung, sungai, dan hutan bersifat ilustratif. METAR diambil dari NOAA Aviation Weather Center (memuat laporan stasiun BMKG yang diteruskan ke jaringan internasional), diperbarui tiap 30 menit; bandara tanpa laporan terbaru tidak ditampilkan datanya; hanya untuk informasi, bukan pengganti briefing penerbangan resmi. Jam terbit/terbenam dihitung dengan rumus astronomi (akurasi sekitar ±1 menit, di permukaan laut). Indonesia tidak memakai waktu musim panas, jadi selisih antarzona selalu tetap: WIB +7, WITA +8, WIT +9 jam dari UTC.</p>
+  <p class="foot">Batas provinsi: Peta Dasar BAKOSURTANAL (disederhanakan). Data bandara: OurAirports (domain publik). Posisi gunung, sungai, dan hutan bersifat ilustratif. METAR diambil dari NOAA Aviation Weather Center (memuat laporan stasiun BMKG yang diteruskan ke jaringan internasional), diperbarui lewat tombol Perbarui dan otomatis tiap 10 menit; bandara tanpa laporan terbaru tidak ditampilkan datanya; hanya untuk informasi, bukan pengganti briefing penerbangan resmi. Jam terbit/terbenam dihitung dengan rumus astronomi (akurasi sekitar ±1 menit, di permukaan laut). Indonesia tidak memakai waktu musim panas, jadi selisih antarzona selalu tetap: WIB +7, WITA +8, WIT +9 jam dari UTC.</p>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -660,6 +669,33 @@ function wxText(code) {
   else t = phen.join(" & ") || code;
   if (pre === "-") t += " ringan"; else if (pre === "+") t += " lebat"; else if (pre === "VC") t += " di sekitar bandara";
   return t.charAt(0).toUpperCase() + t.slice(1);
+}
+// Raw METAR/SPECI text (one report per line, as NOAA AWC's format=raw returns it)
+// -> { ICAO: { raw, obs } }, newest report per wanted station, at most 6 hours old.
+// Same rules as scripts/fetch_metar.py, so live data and data/metar.json agree.
+const REPORT_RE = /\b(?:(METAR|SPECI)\s+)?(?:COR\s+)?(W[A-Z]{3})\s+(\d{2})(\d{2})(\d{2})Z\b([^=\n<]*)/g;
+function obsTime(day, hh, mm, now) {
+  // METAR carries only the day of the month: take that day in this month or the previous one.
+  const d = new Date(now);
+  for (const back of [0, 1]) {
+    const y = d.getUTCFullYear(), m = d.getUTCMonth() - back;
+    const t = Date.UTC(y, m, day, hh, mm);
+    if (new Date(t).getUTCDate() !== day) continue;      // e.g. 31st in a 30-day month
+    if (t <= now + 3600e3) return t;
+  }
+  return null;
+}
+function parseMetarText(text, wanted, now) {
+  const out = {};
+  for (const m of String(text).matchAll(REPORT_RE)) {
+    const [, kind, icao, day, hh, mm, body] = m;
+    if (!wanted.has(icao)) continue;
+    const t = obsTime(+day, +hh, +mm, now);
+    if (t == null || now - t > 6 * 3600e3) continue;
+    const raw = `${kind || "METAR"} ${icao} ${day}${hh}${mm}Z ${body}`.split(/\s+/).join(" ").replace(/[ =]+$/, "") + "=";
+    if (!out[icao] || t > out[icao].obs) out[icao] = { raw, obs: t };
+  }
+  return out;
 }
 const COVER = { FEW: "Sedikit", SCT: "Tersebar", BKN: "Banyak", OVC: "Tertutup", VV: "Langit tak terlihat" };
 function decodeMetar(raw) {
@@ -1630,26 +1666,27 @@ Object.keys(ZONES).forEach(z => {
   document.querySelector(`[data-count="${z}"]`).textContent = AIRPORTS.filter(a => a.zone === z).length;
 });
 
-/* ---------- METAR feed (data/metar.json, refreshed every 30 minutes by GitHub Actions) ---------- */
+/* ---------- METAR feed ----------
+   Live: the "Perbarui" button (and a 10-minute timer) fetches the latest reports straight
+   from NOAA AWC through a small CORS proxy (worker/metar-proxy.js, see docs/metar-live.md).
+   Fallback: data/metar.json, the snapshot written when the site is deployed. */
+const METAR_LIVE_URL = "https://metar-proxy.ridowayudi.workers.dev";   // Cloudflare Worker (worker/metar-proxy.js); "" = live refresh off
 const METAR_URL = "data/metar.json";
-const METAR_POLL_MS = 5 * 60 * 1000;   // look for a fresh file every 5 minutes
-let metarFeed = { ok: false, generated: null, count: 0 };
+const METAR_LIVE_MS = 10 * 60 * 1000;    // automatic live refresh
+const METAR_POLL_MS = 5 * 60 * 1000;     // look for a fresh snapshot when live refresh is off
+const METAR_COOLDOWN_MS = 30 * 1000;     // minimum gap between manual refreshes
+let metarFeed = { ok: false, generated: null, count: 0, live: false, error: "" };
+let metarBusy = false, metarLastManual = 0;
 const wxEl = document.getElementById("c-wx");
 const statusEl = document.getElementById("metar-status");
 const statusText = document.getElementById("metar-status-text");
+const refreshBtn = document.getElementById("btn-metar-refresh");
 
-async function loadMetar() {
-  let doc = null;
-  try {
-    const res = await fetch(`${METAR_URL}?t=${Date.now()}`, { cache: "no-store" });
-    if (res.ok) doc = await res.json();
-  } catch (e) { /* offline, blocked, or opened from disk */ }
-  if (!doc) { if (!metarFeed.ok) { renderMetarStatus(); renderMetarFilter(); } return; }
-  const stations = doc.stations || {};
-  metarFeed = { ok: true, generated: Date.parse(doc.generated), count: 0 };
+function applyMetar(stations, generated, live) {
+  metarFeed = { ok: true, generated, count: 0, live, error: "" };
   AIRPORTS.forEach(ap => {
     const st = stations[ap.icao];
-    ap.wx = st && st.raw ? { raw: st.raw, obs: Date.parse(st.obs), source: st.source || "BMKG", d: decodeMetar(st.raw) } : null;
+    ap.wx = st && st.raw ? { raw: st.raw, obs: st.obs, source: st.source, d: decodeMetar(st.raw) } : null;
     if (ap.wx) metarFeed.count++;
     const d = ap.wx && ap.wx.d;
     ap.rowWx.hidden = !d;
@@ -1668,11 +1705,63 @@ async function loadMetar() {
   applyFilter();
   if (selected) renderWx(AIRPORTS.find(a => a.iata === selected));
 }
+async function loadMetarSnapshot() {
+  try {
+    const res = await fetch(`${METAR_URL}?t=${Date.now()}`, { cache: "no-store" });
+    if (!res.ok) return false;
+    const doc = await res.json();
+    const stations = {};
+    for (const [icao, st] of Object.entries(doc.stations || {}))
+      stations[icao] = { raw: st.raw, obs: Date.parse(st.obs), source: st.source || "BMKG" };
+    applyMetar(stations, Date.parse(doc.generated), false);
+    return true;
+  } catch (e) { return false; }   // offline, blocked, or opened from disk
+}
+async function loadMetarLive() {
+  const icaos = [...new Set(AIRPORTS.map(a => a.icao))].sort();
+  const res = await fetch(`${METAR_LIVE_URL.replace(/\/+$/, "")}/?ids=${icaos.join(",")}`, { cache: "no-store" });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const now = Date.now();
+  const found = parseMetarText(await res.text(), new Set(icaos), now);
+  const stations = {};
+  for (const [icao, st] of Object.entries(found)) stations[icao] = { ...st, source: "NOAA AWC (langsung)" };
+  applyMetar(stations, Date.parse(res.headers.get("X-Fetched") || "") || now, true);
+}
+async function refreshMetar(manual = false) {
+  if (metarBusy) return;
+  if (manual && Date.now() - metarLastManual < METAR_COOLDOWN_MS) return;
+  metarBusy = true;
+  if (manual) metarLastManual = Date.now();
+  renderMetarStatus();
+  try {
+    if (METAR_LIVE_URL) {
+      try { await loadMetarLive(); }
+      catch (e) {
+        await loadMetarSnapshot();
+        metarFeed.error = "Sumber langsung tidak dapat dihubungi, memakai data terakhir.";
+      }
+    } else if (!(await loadMetarSnapshot()) && manual) {
+      metarFeed.error = "Data METAR tidak dapat dimuat.";
+    }
+  } finally {
+    metarBusy = false;
+    renderMetarStatus();
+    renderMetarFilter();
+    if (manual) setTimeout(renderMetarStatus, METAR_COOLDOWN_MS + 50);
+  }
+}
 function renderMetarStatus() {
   statusEl.classList.toggle("ok", metarFeed.ok);
-  statusText.textContent = metarFeed.ok
-    ? `METAR ${metarFeed.count}/${AIRPORTS.length} bandara · diperbarui ${zoneHM("WIB", metarFeed.generated)} WIB`
+  statusEl.classList.toggle("busy", metarBusy);
+  const where = metarFeed.live ? "langsung dari NOAA" : "data terakhir server";
+  statusText.textContent = metarBusy ? "Memperbarui METAR…"
+    : metarFeed.ok ? `METAR ${metarFeed.count}/${AIRPORTS.length} bandara · ${zoneHM("WIB", metarFeed.generated)} WIB · ${where}`
     : "METAR tidak dapat dimuat di tampilan ini";
+  statusEl.title = metarFeed.error || (METAR_LIVE_URL ? "" : "Pembaruan langsung belum diaktifkan: tombol memuat ulang data terakhir dari server.");
+  const cooling = Date.now() - metarLastManual < METAR_COOLDOWN_MS;
+  refreshBtn.disabled = metarBusy || cooling;
+  refreshBtn.setAttribute("aria-label", metarBusy ? "Sedang memperbarui METAR" : "Perbarui data METAR sekarang");
+  if (metarFeed.error && !metarBusy) statusText.textContent += " · ⚠";
 }
 function renderWx(ap) {
   if (!ap.wx) {
@@ -1750,8 +1839,9 @@ function tick() {
 tick();
 applyFilter();
 setInterval(tick, 1000);
-loadMetar();
-setInterval(loadMetar, METAR_POLL_MS);
+refreshBtn.addEventListener("click", () => refreshMetar(true));
+loadMetarSnapshot().then(() => { if (METAR_LIVE_URL) refreshMetar(); else renderMetarStatus(); });
+setInterval(() => refreshMetar(), METAR_LIVE_URL ? METAR_LIVE_MS : METAR_POLL_MS);
 
 window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", applyTheme);
 new MutationObserver(applyTheme).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
